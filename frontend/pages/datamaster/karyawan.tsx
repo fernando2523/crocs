@@ -66,7 +66,7 @@ export default function DaftarProduk() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getkaryawan`,
+      url: `https://api.gudangsandal.com/v1/getkaryawan`,
     })
       .then(function (response) {
         setdataaccount(response.data.result);
@@ -81,7 +81,7 @@ export default function DaftarProduk() {
   async function getstore(roles: any,) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getstorekaryawan`,
+      url: `https://api.gudangsandal.com/v1/getstorekaryawan`,
       data: {
         role: roles,
       },
@@ -109,7 +109,7 @@ export default function DaftarProduk() {
   async function getstoreedit(roles: any, edit_store: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getstorekaryawanedit`,
+      url: `https://api.gudangsandal.com/v1/getstorekaryawanedit`,
       data: {
         role: roles,
         edit_store: edit_store,
@@ -143,7 +143,7 @@ export default function DaftarProduk() {
   async function getroles() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getroles`,
+      url: `https://api.gudangsandal.com/v1/getroles`,
     })
       .then(function (response) {
         setdataroles(response.data.data_roles);
@@ -276,7 +276,7 @@ export default function DaftarProduk() {
   const onSubmit = async (data: any) => {
     // console.log(data);
     await axios
-      .post("http://localhost:4000/v1/addkaryawan", data)
+      .post("https://api.gudangsandal.com/v1/addkaryawan", data)
       .then(function (response) {
         // console.log(response.data);
         loadataaccount();
@@ -304,7 +304,7 @@ export default function DaftarProduk() {
     }
 
     await axios
-      .post("http://localhost:4000/v1/updateakun", {
+      .post("https://api.gudangsandal.com/v1/updateakun", {
         id: idakun,
         status: status_akun,
       })
@@ -347,7 +347,7 @@ export default function DaftarProduk() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`http://localhost:4000/v1/editkaryawan`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editkaryawan`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loadataaccount();
@@ -370,7 +370,7 @@ export default function DaftarProduk() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deleteakun`, { id })
+      .post(`https://api.gudangsandal.com/v1/deleteakun`, { id })
       .then(function (response) {
         // console.log(response.data);
         loadataaccount();

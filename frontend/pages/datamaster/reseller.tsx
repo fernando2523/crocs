@@ -32,7 +32,7 @@ export default function Reseller() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getreseller`,
+      url: `https://api.gudangsandal.com/v1/getreseller`,
     })
       .then(function (response) {
         setdatareseller(response.data.data_reseller);
@@ -80,7 +80,7 @@ export default function Reseller() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("http://localhost:4000/v1/addreseller", data)
+      .post("https://api.gudangsandal.com/v1/addreseller", data)
       .then(function (response) {
         // console.log(response.data);
         loaddatareseller();
@@ -104,7 +104,7 @@ export default function Reseller() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`http://localhost:4000/v1/editreseller`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editreseller`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loaddatareseller();
@@ -127,7 +127,7 @@ export default function Reseller() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deletereseller`, { id })
+      .post(`https://api.gudangsandal.com/v1/deletereseller`, { id })
       .then(function (response) {
         // console.log(response.data);
         loaddatareseller();

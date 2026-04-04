@@ -84,7 +84,7 @@ export default function Shipping() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/orderresellerpending`,
+      url: `https://api.gudangsandal.com/v1/orderresellerpending`,
       data: {
         status_pesanan: status_pesanan,
         query: query,
@@ -171,7 +171,7 @@ export default function Shipping() {
   async function ordercount(store: any, query: any, date: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/ordercountresellerpending`,
+      url: `https://api.gudangsandal.com/v1/ordercountresellerpending`,
       data: {
         store: store,
         query: query,
@@ -200,7 +200,7 @@ export default function Shipping() {
   ) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getheaderpesananresellerpending`,
+      url: `https://api.gudangsandal.com/v1/getheaderpesananresellerpending`,
       data: {
         status_pesanan: status_pesanan,
         query: query,
@@ -227,7 +227,7 @@ export default function Shipping() {
   async function getwarehouse() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getwarehouse`,
+      url: `https://api.gudangsandal.com/v1/getwarehouse`,
     })
       .then(function (response) {
         setdataware(response.data.data_warehouse);
@@ -252,7 +252,7 @@ export default function Shipping() {
   async function getstore(role: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getstore_sales`,
+      url: `https://api.gudangsandal.com/v1/getstore_sales`,
       data: {
         role: role,
       },
@@ -350,7 +350,7 @@ export default function Shipping() {
     } else {
       setreturLuarBTN(true);
       await axios
-        .post(`http://localhost:4000/v1/returLuar`, {
+        .post(`https://api.gudangsandal.com/v1/returLuar`, {
           LuarProduk: LuarProduk,
           LuarSize: LuarSize,
           LuarOldQty: LuarOldQty,
@@ -470,7 +470,7 @@ export default function Shipping() {
       setpilih_warehouse("close");
     } else {
       await axios
-        .post(`http://localhost:4000/v1/getsizeretur`, {
+        .post(`https://api.gudangsandal.com/v1/getsizeretur`, {
           idware: e.target.value,
           idproduct: id_produkretur,
           size: sizeretur,
@@ -536,7 +536,7 @@ export default function Shipping() {
 
   async function sumbitRetur() {
     await axios
-      .post(`http://localhost:4000/v1/retur`, {
+      .post(`https://api.gudangsandal.com/v1/retur`, {
         id_pesanan: Id_pesanan,
         id_produk: id_produkretur,
         produk: produkretur,
@@ -596,7 +596,7 @@ export default function Shipping() {
   async function sumbitrefund() {
     setbtnrefund(true);
     await axios
-      .post(`http://localhost:4000/v1/refund`, {
+      .post(`https://api.gudangsandal.com/v1/refund`, {
         id_produk: id_produkretur,
         produk: addproduk_produk,
         size: addproduk_size,
@@ -649,7 +649,7 @@ export default function Shipping() {
   async function getsupplier() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getsupplier`,
+      url: `https://api.gudangsandal.com/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -747,7 +747,7 @@ export default function Shipping() {
                     >
                       <Image
                         className="rounded border w-[65px] h-auto"
-                        src={`http://localhost:4000/public/images/${order.details_order[i - 1].img
+                        src={`https://api.gudangsandal.com/public/images/${order.details_order[i - 1].img
                           }`}
                         alt="product-1"
                         height="500"
@@ -1085,7 +1085,7 @@ export default function Shipping() {
     setqtyrpay(1);
 
     await axios
-      .post(`http://localhost:4000/v1/gethistorypay`, {
+      .post(`https://api.gudangsandal.com/v1/gethistorypay`, {
         id_invoice: idinvoice,
         id_produk: idproduk,
         size: size,
@@ -1153,7 +1153,7 @@ export default function Shipping() {
     setqtyrpay(1);
 
     await axios
-      .post(`http://localhost:4000/v1/gethistorypay`, {
+      .post(`https://api.gudangsandal.com/v1/gethistorypay`, {
         id_invoice: idinvoice,
         id_produk: idproduk,
         size: size,
@@ -1172,7 +1172,7 @@ export default function Shipping() {
 
   async function updatePesanan(status: any) {
     await axios
-      .post(`http://localhost:4000/v1/updatepesanan`, {
+      .post(`https://api.gudangsandal.com/v1/updatepesanan`, {
         id_pesanan: id_pesanan,
         status,
       })
@@ -1193,7 +1193,7 @@ export default function Shipping() {
 
   async function deletePesanan() {
     await axios
-      .post(`http://localhost:4000/v1/deletepesanan`, {
+      .post(`https://api.gudangsandal.com/v1/deletepesanan`, {
         id_pesanan: id_pesanan,
         status: tabactive,
       })
@@ -2144,7 +2144,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/cash1.png`}
+                        src={`https://api.gudangsandal.com/public/images/cash1.png`}
                         alt="Picture of the author"
                         width={100}
                         height={100}
@@ -2170,7 +2170,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/bca1.png`}
+                        src={`https://api.gudangsandal.com/public/images/bca1.png`}
                         alt="Picture of the author"
                         width={100}
                         height={100}
@@ -2196,7 +2196,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/qris.jpeg`}
+                        src={`https://api.gudangsandal.com/public/images/qris.jpeg`}
                         alt="Picture of the author"
                         width={100}
                         height={100}
@@ -2338,7 +2338,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/cash1.png`}
+                        src={`https://api.gudangsandal.com/public/images/cash1.png`}
                         alt="Picture of the author"
                         width={100}
                         height={100}
@@ -2364,7 +2364,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/bca1.png`}
+                        src={`https://api.gudangsandal.com/public/images/bca1.png`}
                         alt="Picture of the author"
                         width={100}
                         height={100}
@@ -2390,7 +2390,7 @@ export default function Shipping() {
                     <div className="mt-1">
                       <Image
                         className="w-[40%] h-[25%] m-auto"
-                        src={`http://localhost:4000/public/images/qris.jpeg`}
+                        src={`https://api.gudangsandal.com/public/images/qris.jpeg`}
                         alt="Picture of the author"
                         width={100}
                         height={100}

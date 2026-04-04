@@ -17,7 +17,7 @@ export default function Print_so() {
   async function print_Stockopname(id_ware: any) {
     await axios({
       method: "POST",
-      url: `http://localhost:4000/v1/print_stockopname`,
+      url: `https://api.gudangsandal.com/v1/print_stockopname`,
       data: {
         id_ware: id_ware,
       },

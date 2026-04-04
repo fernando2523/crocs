@@ -1327,7 +1327,7 @@ const addProduk = async (data, img) => {
             `SELECT MAX(id_produk) as id_produk FROM tb_produk`
         );
         if (cek_produk[0].id_produk === null) {
-            var id_produk = "10" + tahun + "000001";
+            var id_produk = "10" + tahun + "500001";
         } else {
             const get_last2 = cek_produk[0].id_produk;
             const data_2 = get_last2.toString().slice(-6);
@@ -1350,17 +1350,17 @@ const addProduk = async (data, img) => {
 
         if (data.file === 'null') {
             for (let xx = 0; xx < data_wares_2.length; xx++) {
-                if (data.warehouse === "WARE-0001") {
+                if (data.warehouse === "WARE-0050") {
                     await connection.query(
                         `INSERT INTO tb_produk
                         (id_produk, id_ware, id_brand, id_category, tanggal_upload, produk, deskripsi, quality, n_price, r_price, g_price, img, users, created_at, updated_at)
                         VALUES ('${id_produk}','${data_wares_2[xx].id_ware}','${data.brand}','${data.kategori}','${tanggal_skrg}','${namaproduk}','-','${data.quality}','${data.n_price}','${data.r_price}','${data.g_price}','defaultimg.png','${data.users}','${tanggal}','${tanggal}')`
                     );
-                } else if (data.warehouse === "WARE-0002") {
+                } else if (data.warehouse === "WARE-0051") {
                     await connection.query(
                         `INSERT INTO tb_produk
                         (id_produk, id_ware, id_brand, id_category, tanggal_upload, produk, deskripsi, quality, n_price, r_price, g_price, img, users, created_at, updated_at)
-                        VALUES ('${id_produk}','${data_wares_2[xx].id_ware}','${data.brand}','${data.kategori}','${tanggal_skrg}','${namaproduk}','-','${data.quality}','${data.n_price}','${data.r_price}','${data.g_price}','defaultimg_subtle.png','${data.users}','${tanggal}','${tanggal}')`
+                        VALUES ('${id_produk}','${data_wares_2[xx].id_ware}','${data.brand}','${data.kategori}','${tanggal_skrg}','${namaproduk}','-','${data.quality}','${data.n_price}','${data.r_price}','${data.g_price}','defaultimg.png','${data.users}','${tanggal}','${tanggal}')`
                     );
                 }
             }

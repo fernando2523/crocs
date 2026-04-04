@@ -36,7 +36,7 @@ export default function Expense() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getprodukbarcode`,
+      url: `https://api.gudangsandal.com/v1/getprodukbarcode`,
       data: {
         warehouse: warehouse,
         area: area,
@@ -72,7 +72,7 @@ export default function Expense() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getarehousebarcode`,
+      url: `https://api.gudangsandal.com/v1/getarehousebarcode`,
       data: {
         role: role,
         area: area,
@@ -243,7 +243,7 @@ export default function Expense() {
       setpilih_warehouse("close");
     } else {
       await axios
-        .post(`http://localhost:4000/v1/getsizebarcode`, {
+        .post(`https://api.gudangsandal.com/v1/getsizebarcode`, {
           idware: PrintIDWare,
           idproduct: PrintIDProduk,
           idpo: e.target.value,
@@ -326,8 +326,8 @@ export default function Expense() {
 
     // Load ID PO list dan SPK Detail list secara paralel
     const [poRes, spkDetailRes] = await Promise.all([
-      axios.post(`http://localhost:4000/v1/getidpo`, { idware: idware, idproduct: idproduk }),
-      axios.post(`http://localhost:4000/v1/get_spk_detail_list`, { idware: idware, idproduct: idproduk }),
+      axios.post(`https://api.gudangsandal.com/v1/getidpo`, { idware: idware, idproduct: idproduk }),
+      axios.post(`https://api.gudangsandal.com/v1/get_spk_detail_list`, { idware: idware, idproduct: idproduk }),
     ]);
     setdatapo(poRes.data.result);
     const detailRows: any[] = spkDetailRes.data.result || [];
@@ -345,7 +345,7 @@ export default function Expense() {
     setstokReady(0);
     setaddmodal_submit(true);
     setSizeSource("spk");
-    const res = await axios.post(`http://localhost:4000/v1/get_size_by_spk_detail`, {
+    const res = await axios.post(`https://api.gudangsandal.com/v1/get_size_by_spk_detail`, {
       idware: PrintIDWare,
       idproduct: PrintIDProduk,
       id_spk_detail: detailValue,
@@ -393,13 +393,13 @@ export default function Expense() {
       // availableWidth declared above
       const { width, height } = page.getSize();
 
-      page.drawText(`PO. FARS ${POManual}`, {
-        x: xOffset + 48,
-        y: height - 14,
-        size: 7.3,
-        font: italicFont,
-        color: rgb(0, 0, 0),
-      });
+      // page.drawText(`PO. FARS ${POManual}`, {
+      //   x: xOffset + 48,
+      //   y: height - 14,
+      //   size: 7.3,
+      //   font: italicFont,
+      //   color: rgb(0, 0, 0),
+      // });
 
       page.drawImage(barcodeImage, {
         x: xOffset - 2,
@@ -483,7 +483,7 @@ export default function Expense() {
       for (let i = 0; i < truncatedProdukLines.length; i++) {
         page.drawText(truncatedProdukLines[i], {
           x: xOffset + 48,
-          y: height - 25 - (i * 10),
+          y: height - 15 - (i * 10),
           size: 9.5,
           font: font,
           color: rgb(0, 0, 0),
@@ -498,13 +498,13 @@ export default function Expense() {
         var fixedFontHarga = 12;
       }
 
-      page.drawText(`IDR. ${PrintPrice.toLocaleString('id-ID')}`, {
-        x: xOffset + 48,
-        y: 10,
-        size: fixedFontHarga,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
+      // page.drawText(`IDR. ${PrintPrice.toLocaleString('id-ID')}`, {
+      //   x: xOffset + 48,
+      //   y: 10,
+      //   size: fixedFontHarga,
+      //   font: boldFont,
+      //   color: rgb(0, 0, 0),
+      // });
 
       // Draw a rectangle and center the size text inside it
       const sizeText = `${sizeSelected}`;
@@ -516,11 +516,11 @@ export default function Expense() {
       let boxY: number = 8;
 
       if (sizeSelected.length > 1 && sizeSelected.length < 3) {
-        boxX = xOffset + 124 - 3;
+        boxX = xOffset + 104 - 3;
       } else if (sizeSelected.length > 2) {
-        boxX = xOffset + 116 - 3;
+        boxX = xOffset + 96 - 3;
       } else {
-        boxX = xOffset + 130 - 3;
+        boxX = xOffset + 110 - 3;
       }
 
       page.drawRectangle({

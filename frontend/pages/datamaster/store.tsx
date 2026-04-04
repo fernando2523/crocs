@@ -35,7 +35,7 @@ export default function Store() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getstores`,
+      url: `https://api.gudangsandal.com/v1/getstores`,
     })
       .then(function (response) {
         setdatastore(response.data.data_store);
@@ -50,7 +50,7 @@ export default function Store() {
   async function getstore_area() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getstore_area`,
+      url: `https://api.gudangsandal.com/v1/getstore_area`,
     })
       .then(function (response) {
         setdataarea(response.data.data_area);
@@ -64,7 +64,7 @@ export default function Store() {
   async function getstore_warehouse() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getstore_warehouse`,
+      url: `https://api.gudangsandal.com/v1/getstore_warehouse`,
     })
       .then(function (response) {
         setdatawarehouse(response.data.data_warehouse);
@@ -77,7 +77,7 @@ export default function Store() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("http://localhost:4000/v1/addstore", data)
+      .post("https://api.gudangsandal.com/v1/addstore", data)
       .then(function (response) {
         loaddatastore();
       });
@@ -122,7 +122,7 @@ export default function Store() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`http://localhost:4000/v1/editstore`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editstore`, { data, id })
       .then(function (response) {
         loaddatastore();
       });
@@ -150,7 +150,7 @@ export default function Store() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deletestore`, { id })
+      .post(`https://api.gudangsandal.com/v1/deletestore`, { id })
       .then(function (response) {
         // console.log(response.data);
         loaddatastore();

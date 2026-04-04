@@ -33,7 +33,7 @@ export default function Login() {
     setProcessLogin(true);
 
     await axios
-      .post("http://localhost:4000/v1/login", {
+      .post("https://api.gudangsandal.com/v1/login", {
         data: data,
       })
       .then(function (response) {
@@ -125,7 +125,7 @@ export default function Login() {
         setProcessLogin(true);
 
         await axios
-          .post("http://localhost:4000/v1/login_on_enter", {
+          .post("https://api.gudangsandal.com/v1/login_on_enter", {
             username: username,
             password: password,
           })
@@ -200,8 +200,8 @@ export default function Login() {
       <link rel="shortcut icon" href="../favicon.ico" />
 
       <ToastContainer className="mt-[50px]" />
-      <div className="w-[500px] h-[500px] shadow-xl rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-[0px_20px_11px_1px_#2125291A]">
-        <div className="flex justify-center mt-10 mb-10 ml-28 mr-28">
+      <div className="w-[600px] h-[600px] shadow-xl rounded-xl border border-gray-200 p-5 flex flex-col gap-3 hover:shadow-[0px_20px_11px_1px_#2125291A]">
+        <div className="flex justify-center mt-10 mb-0 ml-28 mr-28">
           <Image
             className="w-auto"
             src="/gudangsandallogo.png"

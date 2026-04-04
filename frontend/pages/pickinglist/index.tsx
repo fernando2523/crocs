@@ -27,19 +27,19 @@ interface PickingRecord {
 
 // Agregasi per size dalam satu group (no_pesanan + id_produk)
 interface AggregatedItem {
-    size:        string;
-    qty:         number;         // sum dari semua record dg size yg sama
-    editTarget:  PickingRecord;  // record pertama, dipakai utk modal edit
+    size: string;
+    qty: number;         // sum dari semua record dg size yg sama
+    editTarget: PickingRecord;  // record pertama, dipakai utk modal edit
 }
 
 interface GroupedRecord {
-    key:        string;
+    key: string;
     no_pesanan: string;
-    id_produk:  string;
-    produk:     string | null;
-    users:      string;
+    id_produk: string;
+    produk: string | null;
+    users: string;
     created_at: string;          // paling terbaru dalam group
-    items:      AggregatedItem[];
+    items: AggregatedItem[];
 }
 
 // Format tanggal lokal → YYYY-MM-DD
@@ -48,31 +48,31 @@ const toDateStr = (d: Date) =>
 
 export default function PickingList() {
     // ── Scan input ───────────────────────────────────────────────────
-    const [noPesanan, setNoPesanan]   = useState("");
+    const [noPesanan, setNoPesanan] = useState("");
     const [barcodeRaw, setBarcodeRaw] = useState("");
-    const [parsed, setParsed]         = useState<{ id_produk: string; size: string } | null>(null);
+    const [parsed, setParsed] = useState<{ id_produk: string; size: string } | null>(null);
 
     // ── Flow state ───────────────────────────────────────────────────
     const [isChecking, setIsChecking] = useState(false);
-    const [isSaving, setIsSaving]     = useState(false);
-    const [orderItem, setOrderItem]   = useState<OrderItem | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [orderItem, setOrderItem] = useState<OrderItem | null>(null);
     const [confirmQty, setConfirmQty] = useState(1);
 
     // ── Tabel + filter tanggal ───────────────────────────────────────
-    const [filterDate, setFilterDate]   = useState(toDateStr(new Date()));
+    const [filterDate, setFilterDate] = useState(toDateStr(new Date()));
     const [pickingData, setPickingData] = useState<PickingRecord[]>([]);
     const [loadingData, setLoadingData] = useState(false);
 
     // ── Edit modal ───────────────────────────────────────────────────
-    const [editRow, setEditRow]         = useState<PickingRecord | null>(null);
-    const [editQty, setEditQty]         = useState(1);
-    const [editSize, setEditSize]       = useState("");
+    const [editRow, setEditRow] = useState<PickingRecord | null>(null);
+    const [editQty, setEditQty] = useState(1);
+    const [editSize, setEditSize] = useState("");
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
     // ── Refs ─────────────────────────────────────────────────────────
     const inputPesananRef = useRef<HTMLInputElement>(null);
     const inputBarcodeRef = useRef<HTMLInputElement>(null);
-    const submitRef       = useRef<HTMLButtonElement>(null);
+    const submitRef = useRef<HTMLButtonElement>(null);
 
     // ── Parse barcode: id_produk.size (split di titik terakhir) ──────
     useEffect(() => {
@@ -104,7 +104,7 @@ export default function PickingList() {
     const fetchPickingData = useCallback(async (tanggal?: string) => {
         setLoadingData(true);
         try {
-            const res = await axios.post("http://localhost:4000/v1/getpickinglistdata", {
+            const res = await axios.post("https://api.gudangsandal.com/v1/getpickinglistdata", {
                 tanggal: tanggal || filterDate,
             });
             setPickingData(res.data.result || []);
@@ -136,10 +136,10 @@ export default function PickingList() {
         setIsChecking(true);
         setOrderItem(null);
         try {
-            const res = await axios.post("http://localhost:4000/v1/getpickinglist", {
+            const res = await axios.post("https://api.gudangsandal.com/v1/getpickinglist", {
                 no_pesanan: noPesanan.trim(),
-                id_produk:  parsed.id_produk,
-                size:       parsed.size,
+                id_produk: parsed.id_produk,
+                size: parsed.size,
             });
             const result = res.data.result;
             if (!result.found) {
@@ -164,12 +164,12 @@ export default function PickingList() {
         if (!orderItem || confirmQty < 1) return;
         setIsSaving(true);
         try {
-            await axios.post("http://localhost:4000/v1/insertpickinglist", {
+            await axios.post("https://api.gudangsandal.com/v1/insertpickinglist", {
                 no_pesanan: noPesanan.trim(),
-                id_produk:  parsed!.id_produk,
-                size:       parsed!.size,
-                qty:        confirmQty,
-                users:      Cookies.get("auth_username") || "-",
+                id_produk: parsed!.id_produk,
+                size: parsed!.size,
+                qty: confirmQty,
+                users: Cookies.get("auth_username") || "-",
             });
             toast.success("Berhasil ditambahkan ke picking list ✓");
             handleReset();
@@ -193,9 +193,9 @@ export default function PickingList() {
         if (!editRow || editQty < 1 || !editSize.trim()) return;
         setIsSavingEdit(true);
         try {
-            await axios.post("http://localhost:4000/v1/updatepickinglist", {
-                id:   editRow.id,
-                qty:  editQty,
+            await axios.post("https://api.gudangsandal.com/v1/updatepickinglist", {
+                id: editRow.id,
+                qty: editQty,
                 size: editSize.trim(),
             });
             toast.success("Data berhasil diupdate ✓");
@@ -212,7 +212,7 @@ export default function PickingList() {
 
     // ── Role-based access ─────────────────────────────────────────────
     const authRole = Cookies.get("auth_role") ?? "";
-    const canEdit  = authRole === "SUPER-ADMIN" || authRole === "HEAD-AREA";
+    const canEdit = authRole === "SUPER-ADMIN" || authRole === "HEAD-AREA";
 
     // ── Format waktu ─────────────────────────────────────────────────
     const fmtTime = (s: string) => s?.slice(0, 16).replace("T", " ") ?? "-";
@@ -228,11 +228,11 @@ export default function PickingList() {
                 map.set(key, {
                     key,
                     no_pesanan: row.no_pesanan,
-                    id_produk:  row.id_produk,
-                    produk:     row.produk,
-                    users:      row.users,
+                    id_produk: row.id_produk,
+                    produk: row.produk,
+                    users: row.users,
                     created_at: row.created_at,
-                    items:      [],
+                    items: [],
                 });
             }
             const grp = map.get(key)!;
@@ -498,7 +498,7 @@ export default function PickingList() {
                                 <tbody>
                                     {groupedData.flatMap((grp, gIdx) =>
                                         grp.items.map((item, iIdx) => {
-                                            const isLast    = iIdx === grp.items.length - 1;
+                                            const isLast = iIdx === grp.items.length - 1;
                                             // border bawah: tebal antar-group, tipis antar-size dalam group
                                             const rowBorder = isLast ? "border-b-2 border-gray-200" : "border-b border-gray-100";
                                             // border kanan untuk merged cells

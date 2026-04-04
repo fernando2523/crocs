@@ -320,7 +320,7 @@ async function insertOrdersToDatabase(orders) {
 
         if (result.length > 0) {
             await axios
-                .post(`http://localhost:4000/v1/cekbeforeordermassal`, {
+                .post(`https://api.gudangsandal.com/v1/cekbeforeordermassal`, {
                     result: result,
                 })
                 .then(function (response) {
@@ -401,7 +401,7 @@ async function insertOrdersToDatabase(orders) {
 
                     if (dataQtyReady.length > 0) {
                         axios
-                            .post(`http://localhost:4000/v1/syncordermassal`, {
+                            .post(`https://api.gudangsandal.com/v1/syncordermassal`, {
                                 data: dataQtyReady,
                                 tanggal: tanggal_skrg,
                                 id_store: idstore,

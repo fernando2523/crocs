@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "concurrently \"node cron.js\" \"next dev\"",
     "build": "next build",
-    "start": "concurrently \"node cron.js\" \"next start -p 3103\"",
+    "start": "concurrently \"node cron.js\" \"next start -p 3009\"",
     "lint": "next lint"
   },
   "dependencies": {

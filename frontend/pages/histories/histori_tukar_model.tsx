@@ -43,7 +43,7 @@ export default function Refund() {
 
     async function getdatarefund(tanggal: any, Store: any, Role: any, area: any, Query: any, datechange: any, Brand: any) {
         await axios
-            .post("http://localhost:4000/v1/getreturmodel", {
+            .post("https://api.gudangsandal.com/v1/getreturmodel", {
                 tanggal: tanggal,
                 store: Store,
                 role: Role,
@@ -88,7 +88,7 @@ export default function Refund() {
     async function getstore(Role: any, area: any, Brand: any) {
         await axios({
             method: "post",
-            url: `http://localhost:4000/v1/getstore_history`,
+            url: `https://api.gudangsandal.com/v1/getstore_history`,
             data: {
                 role: Role,
                 store: area,

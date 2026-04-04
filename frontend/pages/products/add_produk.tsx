@@ -38,9 +38,9 @@ export default function AddProduk() {
 
   useEffect(() => {
     getwarehouse(Role, area);
-    getbrand(Role, area);
+    getbrand();
     getcategory();
-    getsupplier(Role, area);
+    getsupplier();
     gethistoripo();
   }, []);
 
@@ -51,7 +51,7 @@ export default function AddProduk() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getwarehouseselected`,
+      url: `https://api.gudangsandal.com/v1/getwarehouseselected`,
       data: {
         role: role,
         store: area,
@@ -82,17 +82,13 @@ export default function AddProduk() {
     });
   }
 
-  async function getbrand(Role: any, area: any) {
+  async function getbrand() {
     await axios({
-      method: "post",
-      url: `http://localhost:4000/v1/getbrandarea`,
-      data: {
-        role: Role,
-        store: area,
-      },
+      method: "get",
+      url: `https://api.gudangsandal.com/v1/getbrand`,
     })
       .then(function (response) {
-        setdatabrand(response.data.result);
+        setdatabrand(response.data.data_brand);
       })
       .catch(function (error) {
         console.log(error);
@@ -112,7 +108,7 @@ export default function AddProduk() {
   async function gethistoripo() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/gethistoripo`,
+      url: `https://api.gudangsandal.com/v1/gethistoripo`,
     })
       .then(function (response) {
         setdatahistorypo(response.data.result);
@@ -137,7 +133,7 @@ export default function AddProduk() {
   async function gethistoriso() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/gethistoriso`,
+      url: `https://api.gudangsandal.com/v1/gethistoriso`,
     })
       .then(function (response) {
         setdataso(response.data.result);
@@ -163,7 +159,7 @@ export default function AddProduk() {
   async function getcategory() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getcategory`,
+      url: `https://api.gudangsandal.com/v1/getcategory`,
     })
       .then(function (response) {
         setdatacategory(response.data.data_category);
@@ -183,17 +179,13 @@ export default function AddProduk() {
     });
   }
 
-  async function getsupplier(Role: any, area: any) {
+  async function getsupplier() {
     await axios({
-      method: "post",
-      url: `http://localhost:4000/v1/getsupplierarea`,
-      data: {
-        role: Role,
-        store: area,
-      },
+      method: "get",
+      url: `https://api.gudangsandal.com/v1/getsupplier`,
     })
       .then(function (response) {
-        setdatasupplier(response.data.result);
+        setdatasupplier(response.data.data_supplier);
         // console.log(response.data.data_supplier)
       })
       .catch(function (error) {
@@ -250,142 +242,166 @@ export default function AddProduk() {
   function ubahtipevariasi(e: any) {
     settipevariasi(e.target.value);
 
-    if (e.target.value === "sneakers35-45") {
+    if (e.target.value === "unisex") {
       unregister("variasi");
       reset({
         variasi: [
           {
-            size: "35",
+            size: "J3-W5",
             stok: "0",
           },
           {
-            size: "36",
+            size: "M4-W6",
             stok: "0",
           },
           {
-            size: "37",
+            size: "M5-W7",
             stok: "0",
           },
           {
-            size: "38",
+            size: "M6-W8",
             stok: "0",
           },
           {
-            size: "39",
+            size: "M7-W9",
             stok: "0",
           },
           {
-            size: "40",
+            size: "M8-W10",
             stok: "0",
           },
           {
-            size: "41",
+            size: "M9-W11",
             stok: "0",
           },
           {
-            size: "42",
+            size: "M10-W12",
             stok: "0",
           },
           {
-            size: "43",
+            size: "M11-W13",
             stok: "0",
           },
           {
-            size: "44",
+            size: "M12-W14",
             stok: "0",
           },
           {
-            size: "45",
+            size: "M13-W15",
             stok: "0",
           },
         ],
       });
-    } else if (e.target.value === "celana") {
+    } else if (e.target.value === "woman") {
       unregister("variasi");
       reset({
         variasi: [
           {
-            size: "28",
+            size: "W3",
             stok: "0",
           },
           {
-            size: "29",
+            size: "W4",
             stok: "0",
           },
           {
-            size: "30",
+            size: "W5",
             stok: "0",
           },
           {
-            size: "31",
+            size: "W6",
             stok: "0",
           },
           {
-            size: "32",
+            size: "W7",
             stok: "0",
           },
           {
-            size: "33",
+            size: "W8",
             stok: "0",
           },
           {
-            size: "34",
+            size: "W9",
             stok: "0",
           },
           {
-            size: "36",
+            size: "W10",
             stok: "0",
           },
           {
-            size: "38",
+            size: "W11",
             stok: "0",
           },
           {
-            size: "40",
+            size: "W12",
+            stok: "0",
+          },
+          {
+            size: "W13",
             stok: "0",
           },
         ],
       });
-    } else if (e.target.value === "apparel") {
+    } else if (e.target.value === "kids") {
       unregister("variasi");
       reset({
         variasi: [
           {
-            size: "XS",
+            size: "C7",
             stok: "0",
           },
           {
-            size: "S",
+            size: "C8",
             stok: "0",
           },
           {
-            size: "M",
+            size: "C9",
             stok: "0",
           },
           {
-            size: "L",
+            size: "C10",
             stok: "0",
           },
           {
-            size: "XL",
+            size: "C11",
             stok: "0",
           },
           {
-            size: "XXL",
+            size: "C12",
+            stok: "0",
+          },
+          {
+            size: "C13",
+            stok: "0",
+          },
+          {
+            size: "J1",
+            stok: "0",
+          },
+          {
+            size: "J2",
+            stok: "0",
+          },
+          {
+            size: "J3",
+            stok: "0",
+          },
+          {
+            size: "J4",
             stok: "0",
           },
         ],
       });
-    } else if (e.target.value === "caps") {
-      unregister("variasi");
-      reset({
-        variasi: [
-          {
-            size: "CAPS",
-            stok: "0",
-          },
-        ],
-      });
+      // } else if (e.target.value === "caps") {
+      //   unregister("variasi");
+      //   reset({
+      //     variasi: [
+      //       {
+      //         size: "CAPS",
+      //         stok: "0",
+      //       },
+      //     ],
+      //   });
     } else {
       setCount(1);
       unregister("variasi");
@@ -405,7 +421,7 @@ export default function AddProduk() {
 
   let list_variasi: any = [];
 
-  if (tipevariasi === "sneakers35-45") {
+  if (tipevariasi === "unisex") {
     for (let index = 0; index < 11; index++) {
       list_variasi.push(
         <tr key={index} className="rounded-lg h-auto mt-7">
@@ -444,15 +460,15 @@ export default function AddProduk() {
         </tr>
       );
     }
-  } else if (tipevariasi === "celana") {
-    for (let index = 0; index < 10; index++) {
+  } else if (tipevariasi === "woman") {
+    for (let index = 0; index < 11; index++) {
       list_variasi.push(
         <tr key={index} className="rounded-lg h-auto mt-7">
           <td className="pt-2">
             <div className="h-[30px] flex flex-wrap justify-center items-center rounded-l-lg">
               <input
                 readOnly
-                defaultValue={28 + index}
+                defaultValue={32 + index}
                 {...register(`variasi.${index}.size`, { required: true })}
                 className="h-[100%] border w-[100%] pr-3 pl-5 mx-2 text-gray-700 focus:outline-none rounded-lg"
                 type="text"
@@ -483,54 +499,15 @@ export default function AddProduk() {
         </tr>
       );
     }
-  } else if (tipevariasi === "apparel") {
-    for (let index = 0; index < 6; index++) {
+  } else if (tipevariasi === "kids") {
+    for (let index = 0; index < 11; index++) {
       list_variasi.push(
         <tr key={index} className="rounded-lg h-auto mt-7">
           <td className="pt-2">
             <div className="h-[30px] flex flex-wrap justify-center items-center rounded-l-lg">
               <input
                 readOnly
-                defaultValue={1 + index}
-                {...register(`variasi.${index}.size`, { required: true })}
-                className="h-[100%] border w-[100%] pr-3 pl-5 mx-2 text-gray-700 focus:outline-none rounded-lg"
-                type="text"
-                placeholder="Size"
-              />
-            </div>
-          </td>
-          <td className="pt-2">
-            <div className="h-[30px] flex flex-wrap justify-center items-center rounded-l-lg">
-              <input
-                {...register(`variasi.${index}.stok`, {
-                  required: true,
-                  onChange: (e: any) => {
-                    if (e.target.value === "") {
-                      var n = 0;
-                    } else {
-                      var n = parseInt(e.target.value.replace(/\D/g, ""), 10);
-                    }
-                    setValue(`variasi.${index}.stok`, n);
-                  },
-                })}
-                className="h-[100%] border w-[100%] pr-3 pl-5 mx-2 text-gray-700 focus:outline-none rounded-lg"
-                type="text"
-                placeholder="0"
-              />
-            </div>
-          </td>
-        </tr>
-      );
-    }
-  } else if (tipevariasi === "caps") {
-    for (let index = 0; index < 1; index++) {
-      list_variasi.push(
-        <tr key={index} className="rounded-lg h-auto mt-7">
-          <td className="pt-2">
-            <div className="h-[30px] flex flex-wrap justify-center items-center rounded-l-lg">
-              <input
-                readOnly
-                defaultValue={1 + index}
+                defaultValue={24 + index}
                 {...register(`variasi.${index}.size`, { required: true })}
                 className="h-[100%] border w-[100%] pr-3 pl-5 mx-2 text-gray-700 focus:outline-none rounded-lg"
                 type="text"
@@ -657,7 +634,7 @@ export default function AddProduk() {
     formData.append("produk", data.produk);
     formData.append("brand", data.brand);
     formData.append("warehouse", data.warehouse);
-    formData.append("quality", "ORIGINAL");
+    formData.append("quality", data.quality);
     formData.append("kategori", data.kategori);
     formData.append("g_price", g_price);
     formData.append("r_price", r_price);
@@ -679,7 +656,7 @@ export default function AddProduk() {
     // } else {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/addproduk`,
+      url: `https://api.gudangsandal.com/v1/addproduk`,
       headers: {
         "content-type": "multipart/form-data",
       },
@@ -713,6 +690,12 @@ export default function AddProduk() {
   const removeSelectedImage = () => {
     setSelectedImage(null);
   };
+
+  const totalQty =
+    (watch("variasi") as { stok?: number | string }[] | undefined)?.reduce(
+      (acc, item) => acc + (parseInt(String(item?.stok ?? 0), 10) || 0),
+      0
+    ) ?? 0;
 
   return (
     <div className="p-5">
@@ -792,7 +775,7 @@ export default function AddProduk() {
 
                 <div className="flex flex-row gap-5 justify-center content-center items-center mt-4">
 
-                  <div className="grow">
+                  <div className="basis-1/3">
                     <div className="mb-3">Warehouse</div>
                     {"SUPER-ADMIN" === Cookies.get("auth_role") ||
                       "HEAD-AREA" === Cookies.get("auth_role") ? (
@@ -819,7 +802,7 @@ export default function AddProduk() {
                     )}
                   </div>
 
-                  <div className="grow">
+                  <div className="basis-1/3">
                     <div className="mb-3">Category</div>
                     <select
                       {...register("kategori", { required: true })}
@@ -831,7 +814,7 @@ export default function AddProduk() {
                     </select>
                   </div>
 
-                  {/* <div className="basis-1/3">
+                  <div className="basis-1/3">
                     <div className="mb-3">Quality</div>
                     <select
                       {...register("quality", { required: true })}
@@ -843,7 +826,7 @@ export default function AddProduk() {
                       <option value="LOKAL">LOKAL</option>
                       <option value="ORIGINAL">ORIGINAL</option>
                     </select>
-                  </div> */}
+                  </div>
                 </div>
 
                 <div className="flex flex-row gap-5 justify-center content-center items-center mt-4">
@@ -866,7 +849,7 @@ export default function AddProduk() {
                   </div>
 
                   <div className="grow">
-                    <div className="mb-3">Grosir</div>
+                    <div className="mb-3">Reseller</div>
                     <CurrencyInput
                       className={`${errors.g_price ? "border-red-400" : ""
                         } border h-[45px]  w-[100%] pr-3 pl-5  text-gray-700 focus:outline-none rounded-lg`}
@@ -882,7 +865,7 @@ export default function AddProduk() {
                     />
                   </div>
                   <div className="grow">
-                    <div className="mb-3">Reseller</div>
+                    <div className="mb-3">Dropship</div>
                     <CurrencyInput
                       className={`${errors.r_price ? "border-red-400" : ""
                         } border h-[45px]  w-[100%] pr-3 pl-5  text-gray-700 focus:outline-none rounded-lg`}
@@ -938,17 +921,18 @@ export default function AddProduk() {
                       className={`appearance-none border h-[45px] w-[100%] pr-3 pl-5  text-gray-700 focus:outline-none rounded-lg`}
                     >
                       <option value="">Select Variation Type</option>
-                      <option value="celana">
-                        ( 28 - 40 )
+                      <option value="unisex">
+                        Unisex J3-M13
                       </option>
-                      <option value="apparel">
-                        ( XS - XXXL )
+                      <option value="woman">
+                        Woman W3-W13
                       </option>
-                      <option value="caps">
-                        All Size
+                      <option value="kids">
+                        Kids C7-J4
                       </option>
                       <option value="custom">Custom</option>
                     </select>
+
                   </div>
                 </div>
 
@@ -975,7 +959,7 @@ export default function AddProduk() {
                         </tbody>
                       </table>
                     );
-                  } else if (tipevariasi === "sneakers35-45") {
+                  } else if (tipevariasi === "unisex") {
                     return (
                       <table className="table table-auto bg-transparent text-sm w-full">
                         <thead className="bg-[#DDE4F0] text-gray-800">
@@ -989,7 +973,7 @@ export default function AddProduk() {
                         </tbody>
                       </table>
                     );
-                  } else if (tipevariasi === "celana") {
+                  } else if (tipevariasi === "woman") {
                     return (
                       <table className="table table-auto bg-transparent text-sm w-full">
                         <thead className="bg-[#DDE4F0] text-gray-800">
@@ -1003,21 +987,7 @@ export default function AddProduk() {
                         </tbody>
                       </table>
                     );
-                  } else if (tipevariasi === "apparel") {
-                    return (
-                      <table className="table table-auto bg-transparent text-sm w-full">
-                        <thead className="bg-[#DDE4F0] text-gray-800">
-                          <tr className="">
-                            <th className="py-1 rounded-l-lg">Size</th>
-                            <th className="py-1 rounded-r-lg">Stok</th>
-                          </tr>
-                        </thead>
-                        <tbody className="group rounded-lg">
-                          {list_variasi}
-                        </tbody>
-                      </table>
-                    );
-                  } else if (tipevariasi === "caps") {
+                  } else if (tipevariasi === "kids") {
                     return (
                       <table className="table table-auto bg-transparent text-sm w-full">
                         <thead className="bg-[#DDE4F0] text-gray-800">
@@ -1032,7 +1002,19 @@ export default function AddProduk() {
                       </table>
                     );
                   }
+
                 })()}
+                {tipevariasi && (
+                  <div className="mt-4 flex justify-end">
+                    <div className="flex items-center gap-3 px-5 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 text-white shadow">
+                      <fa.FaBoxes size={18} />
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-xs opacity-90">Total Qty</span>
+                        <span className="text-xl font-bold">{totalQty}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -1051,6 +1033,8 @@ export default function AddProduk() {
     </div >
   );
 }
+
+
 
 const styles = {
   preview: {
