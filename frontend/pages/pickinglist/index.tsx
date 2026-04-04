@@ -69,6 +69,62 @@ export default function PickingList() {
     const [editSize, setEditSize] = useState("");
     const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+    // ── Mobile camera ────────────────────────────────────────────────
+    const [isMobile, setIsMobile] = useState(false);
+    const [showCamera, setShowCamera] = useState(false);
+    const cameraRef = useRef<any>(null);
+
+    useEffect(() => {
+        const check = () =>
+            setIsMobile(/Mobi|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
+        check();
+        window.addEventListener("resize", check);
+        return () => window.removeEventListener("resize", check);
+    }, []);
+
+    const startScan = () => setShowCamera(true);
+
+    const stopScan = async () => {
+        if (cameraRef.current) {
+            try { await cameraRef.current.stop(); } catch { /* ignore */ }
+            cameraRef.current = null;
+        }
+        setShowCamera(false);
+    };
+
+    useEffect(() => {
+        if (!showCamera) return;
+        let mounted = true;
+        (async () => {
+            const { Html5Qrcode } = await import("html5-qrcode");
+            if (!mounted) return;
+            const scanner = new Html5Qrcode("barcode-camera-reader");
+            cameraRef.current = scanner;
+            try {
+                await scanner.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 260, height: 260 } },
+                    (decoded: string) => {
+                        setBarcodeRaw(decoded);
+                        setOrderItem(null);
+                        stopScan();
+                    },
+                    undefined
+                );
+            } catch {
+                setShowCamera(false);
+            }
+        })();
+        return () => {
+            mounted = false;
+            if (cameraRef.current) {
+                cameraRef.current.stop().catch(() => { });
+                cameraRef.current = null;
+            }
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showCamera]);
+
     // ── Refs ─────────────────────────────────────────────────────────
     const inputPesananRef = useRef<HTMLInputElement>(null);
     const inputBarcodeRef = useRef<HTMLInputElement>(null);
@@ -315,6 +371,16 @@ export default function PickingList() {
                                     <fa.FaTimes className="text-xs" />
                                 </button>
                             )}
+                            {isMobile && (
+                                <button
+                                    type="button"
+                                    onClick={startScan}
+                                    className="text-gray-400 hover:text-gray-600 ml-2 shrink-0"
+                                    title="Scan dengan kamera"
+                                >
+                                    <fa.FaCamera className="text-base" />
+                                </button>
+                            )}
                         </div>
                         {parsed && (
                             <div className="flex gap-3 mt-1.5 text-xs">
@@ -543,6 +609,45 @@ export default function PickingList() {
                     </>
                 )}
             </div>
+
+            {/* ── Camera Modal (mobile only) ───────────────────────────── */}
+            {showCamera && (
+                <div className="fixed inset-0 bg-black z-50 flex flex-col">
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-4 py-3 bg-black/80">
+                        <div className="flex items-center gap-2 text-white">
+                            <fa.FaCamera className="text-lg" />
+                            <span className="font-semibold text-sm">Scan Barcode Produk</span>
+                        </div>
+                        <button
+                            onClick={stopScan}
+                            className="text-white bg-white/10 hover:bg-white/20 rounded-full w-8 h-8 flex items-center justify-center"
+                        >
+                            <fa.FaTimes />
+                        </button>
+                    </div>
+
+                    {/* Camera viewport */}
+                    <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
+                        <div id="barcode-camera-reader" className="w-full h-full" />
+                        {/* Overlay frame */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-64 h-64 border-2 border-white/50 rounded-xl">
+                                {/* Corner marks */}
+                                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg" />
+                                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg" />
+                                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg" />
+                                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg" />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Footer hint */}
+                    <div className="px-4 py-3 bg-black/80 text-center">
+                        <p className="text-white/60 text-xs">Arahkan kamera ke barcode produk (format: id_produk.size)</p>
+                    </div>
+                </div>
+            )}
 
             {/* ── Modal Edit ───────────────────────────────────────────── */}
             {editRow && (

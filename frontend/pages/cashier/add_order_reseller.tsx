@@ -466,10 +466,9 @@ export default function AddOrder() {
               key={index}
               className={`${sizeSelected === datasize[index].size
                 ? "bg-blue-500 text-white border-blue-500"
-                : "text-gray-500 border-gray-500"
-                  && display_size === datasize[index].size && display_id_ware === datasize[index].id_ware && display_id_produk === datasize[index].id_produk
+                : display_size === datasize[index].size && display_id_ware === datasize[index].id_ware && display_id_produk === datasize[index].id_produk
                   ? "bg-red-500 text-white"
-                  : "text-gray-500"} font-medium py-2 text-center rounded-lg border  cursor-pointer`}
+                  : "text-gray-500 border-gray-500"} font-medium py-2 text-center rounded-lg border  cursor-pointer`}
             >
               {datasize[index].size} = {datasize[index].qty}
             </div>
@@ -488,8 +487,7 @@ export default function AddOrder() {
               key={index}
               className={`${sizeSelected === datasize[index].size
                 ? "bg-blue-500 text-white"
-                : "text-blue-500"
-                  && display_size === datasize[index].size && display_id_ware === datasize[index].id_ware && display_id_produk === datasize[index].id_produk
+                : display_size === datasize[index].size && display_id_ware === datasize[index].id_ware && display_id_produk === datasize[index].id_produk
                   ? "bg-red-500 text-white"
                   : "text-blue-500"} font-medium py-2 text-center rounded-lg border border-blue-500 cursor-pointer`}
             >

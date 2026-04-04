@@ -542,7 +542,7 @@ export default function Expense() {
     }
 
     const pdfBytes = await pdfDoc.save();
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([pdfBytes as Uint8Array<ArrayBuffer>], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     window.open(url);
 

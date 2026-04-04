@@ -106,19 +106,71 @@ const Layout = (props: PropsWithChildren) => {
 
     //hook useEffect
     useEffect(() => {
-        { Cookies.get('auth') ? setUsername(Cookies.get('auth_username')) : setUsername(false) }
-        setTimeout(function () {
-            Cookies.remove('auth')
-            Cookies.remove('auth_idusername')
-            Cookies.remove('auth_username')
-            Cookies.remove('auth_password')
-            Cookies.remove('auth_role')
-            Cookies.remove('auth_name')
-            Cookies.remove('auth_store')
-            Cookies.remove('auth_channel')
-            router.reload();
-        }, 30 * 60 * 1000);
+        // set initial username once on mount
+        const name = Cookies.get('auth') ? Cookies.get('auth_username') : '';
+        setUsername(name || false);
+
+        const INACTIVITY_MS = 15 * 60 * 1000; // 15 minutes
+        // const INACTIVITY_MS = 30 * 1000; // 30 seconds (testing)
+        let timerId: ReturnType<typeof setTimeout> | null = null;
+
+        const scheduleLogout = () => {
+            if (timerId) clearTimeout(timerId);
+            timerId = setTimeout(() => {
+                // clear auth cookies and reload
+                Cookies.remove('auth', { path: '/' });
+                Cookies.remove('auth_idusername', { path: '/' });
+                Cookies.remove('auth_username', { path: '/' });
+                Cookies.remove('auth_password', { path: '/' });
+                Cookies.remove('auth_role', { path: '/' });
+                Cookies.remove('auth_name', { path: '/' });
+                Cookies.remove('auth_store', { path: '/' });
+                Cookies.remove('auth_channel', { path: '/' });
+                router.reload();
+            }, INACTIVITY_MS);
+        };
+
+        // Any of these events counts as activity
+        const activityEvents: (keyof WindowEventMap)[] = [
+            'mousemove',
+            'mousedown',
+            'keydown',
+            'scroll',
+            'touchstart',
+            'click',
+        ];
+
+        const onActivity = () => {
+            // Only reset timer if still authenticated
+            if (Cookies.get('auth')) {
+                scheduleLogout();
+            }
+        };
+
+        // Attach listeners
+        activityEvents.forEach((evt) => {
+            window.addEventListener(evt, onActivity, { passive: true });
+        });
+
+        // Also listen for tab visibility change (when user comes back)
+        const onVisible = () => {
+            if (!document.hidden) onActivity();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+
+        // Kick off the initial timer
+        scheduleLogout();
+
+        // Cleanup on unmount
+        return () => {
+            if (timerId) clearTimeout(timerId);
+            activityEvents.forEach((evt) => {
+                window.removeEventListener(evt, onActivity);
+            });
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, []);
+
 
     // Add showNotification state
     const [showNotification, setShowNotification] = useState(false);

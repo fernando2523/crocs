@@ -247,7 +247,7 @@ export default function AddProduk() {
       reset({
         variasi: [
           {
-            size: "J3-W5",
+            size: "M3-W5",
             stok: "0",
           },
           {
@@ -383,7 +383,7 @@ export default function AddProduk() {
             stok: "0",
           },
           {
-            size: "J3",
+            size: "M3",
             stok: "0",
           },
           {
@@ -922,7 +922,7 @@ export default function AddProduk() {
                     >
                       <option value="">Select Variation Type</option>
                       <option value="unisex">
-                        Unisex J3-M13
+                        Unisex M3-M13
                       </option>
                       <option value="woman">
                         Woman W3-W13
