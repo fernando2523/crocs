@@ -1,0 +1,23 @@
+/* .rdt_Table {
+  background-color: transparent !important;
+} */
+
+.extcss :global .rdt_Table {
+  background-color: transparent !important;
+}
+
+.extcss :global .rdt_TableBody {
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.extcss :global .rdt_TableHeadRow {
+  border-radius: 5px;
+}
+
+.extcss :global .rdt_TableRow {
+  border-radius: 5px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+  height: auto;
+}
