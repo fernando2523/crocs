@@ -72,6 +72,7 @@ export default function PickingList() {
     // ── Mobile camera ────────────────────────────────────────────────
     const [isMobile, setIsMobile] = useState(false);
     const [showCamera, setShowCamera] = useState(false);
+    const [scanTarget, setScanTarget] = useState<"pesanan" | "barcode">("barcode");
     const cameraRef = useRef<any>(null);
 
     useEffect(() => {
@@ -82,7 +83,10 @@ export default function PickingList() {
         return () => window.removeEventListener("resize", check);
     }, []);
 
-    const startScan = () => setShowCamera(true);
+    const startScan = (target: "pesanan" | "barcode") => {
+        setScanTarget(target);
+        setShowCamera(true);
+    };
 
     const stopScan = async () => {
         if (cameraRef.current) {
@@ -96,16 +100,43 @@ export default function PickingList() {
         if (!showCamera) return;
         let mounted = true;
         (async () => {
-            const { Html5Qrcode } = await import("html5-qrcode");
+            const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
             if (!mounted) return;
             const scanner = new Html5Qrcode("barcode-camera-reader");
             cameraRef.current = scanner;
+
+            // Config berbeda: barcode 1D (pesanan) vs QR code (produk)
+            const isPesanan = scanTarget === "pesanan";
+            const config = isPesanan
+                ? {
+                    fps: 20,
+                    qrbox: { width: 320, height: 100 },   // kotak lebar-pendek untuk barcode 1D
+                    formatsToSupport: [
+                        Html5QrcodeSupportedFormats.CODE_128,
+                        Html5QrcodeSupportedFormats.CODE_39,
+                        Html5QrcodeSupportedFormats.EAN_13,
+                        Html5QrcodeSupportedFormats.EAN_8,
+                        Html5QrcodeSupportedFormats.ITF,
+                    ],
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+                }
+                : {
+                    fps: 10,
+                    qrbox: { width: 260, height: 260 },   // kotak persegi untuk QR code
+                    formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+                    experimentalFeatures: { useBarCodeDetectorIfSupported: true },
+                };
+
             try {
                 await scanner.start(
                     { facingMode: "environment" },
-                    { fps: 10, qrbox: { width: 260, height: 260 } },
+                    config,
                     (decoded: string) => {
-                        setBarcodeRaw(decoded);
+                        if (scanTarget === "pesanan") {
+                            setNoPesanan(decoded);
+                        } else {
+                            setBarcodeRaw(decoded);
+                        }
                         setOrderItem(null);
                         stopScan();
                     },
@@ -346,6 +377,16 @@ export default function PickingList() {
                                     <fa.FaTimes className="text-xs" />
                                 </button>
                             )}
+                            {isMobile && (
+                                <button
+                                    type="button"
+                                    onClick={() => startScan("pesanan")}
+                                    className="text-gray-400 hover:text-gray-600 ml-2 shrink-0"
+                                    title="Scan dengan kamera"
+                                >
+                                    <fa.FaCamera className="text-base" />
+                                </button>
+                            )}
                         </div>
                     </div>
 
@@ -374,7 +415,7 @@ export default function PickingList() {
                             {isMobile && (
                                 <button
                                     type="button"
-                                    onClick={startScan}
+                                    onClick={() => startScan("barcode")}
                                     className="text-gray-400 hover:text-gray-600 ml-2 shrink-0"
                                     title="Scan dengan kamera"
                                 >
@@ -617,7 +658,9 @@ export default function PickingList() {
                     <div className="flex items-center justify-between px-4 py-3 bg-black/80">
                         <div className="flex items-center gap-2 text-white">
                             <fa.FaCamera className="text-lg" />
-                            <span className="font-semibold text-sm">Scan Barcode Produk</span>
+                            <span className="font-semibold text-sm">
+                                {scanTarget === "pesanan" ? "Scan No. Pesanan" : "Scan Barcode Produk"}
+                            </span>
                         </div>
                         <button
                             onClick={stopScan}
@@ -630,21 +673,29 @@ export default function PickingList() {
                     {/* Camera viewport */}
                     <div className="flex-1 relative flex items-center justify-center bg-black overflow-hidden">
                         <div id="barcode-camera-reader" className="w-full h-full" />
-                        {/* Overlay frame */}
+                        {/* Overlay frame — lebar-pendek untuk 1D barcode, persegi untuk QR */}
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-64 h-64 border-2 border-white/50 rounded-xl">
+                            <div className={`border-2 border-white/50 rounded-xl relative ${scanTarget === "pesanan" ? "w-80 h-24" : "w-64 h-64"}`}>
                                 {/* Corner marks */}
                                 <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-white rounded-tl-lg" />
                                 <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-white rounded-tr-lg" />
                                 <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-white rounded-bl-lg" />
                                 <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-white rounded-br-lg" />
+                                {/* Garis scan animasi untuk 1D barcode */}
+                                {scanTarget === "pesanan" && (
+                                    <div className="absolute inset-x-2 top-1/2 h-0.5 bg-red-400/80 animate-pulse" />
+                                )}
                             </div>
                         </div>
                     </div>
 
                     {/* Footer hint */}
                     <div className="px-4 py-3 bg-black/80 text-center">
-                        <p className="text-white/60 text-xs">Arahkan kamera ke barcode produk (format: id_produk.size)</p>
+                        <p className="text-white/60 text-xs">
+                            {scanTarget === "pesanan"
+                                ? "Arahkan kamera ke barcode No. Pesanan"
+                                : "Arahkan kamera ke barcode produk (format: id_produk.size)"}
+                        </p>
                     </div>
                 </div>
             )}

@@ -278,9 +278,9 @@ async function insertOrdersToDatabase(orders) {
                                         productName: item.productName,
                                         quantity: item.quantity,
                                         spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
-                                            ? item.sku.split(".")[0]
+                                            ? (item.sku ? item.sku.split(".")[0] : null)
                                             : vars.channelId === "SHOPEE_ID"
-                                                ? (item.spu === "" || item.spu === null ? item.sku.split(".")[0] : item.spu)
+                                                ? (item.spu === "" || item.spu === null ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
                                                 : null,
                                     };
                                 }),
@@ -368,6 +368,11 @@ async function insertOrdersToDatabase(orders) {
                                 );
 
                                 if (rows.length === 0) {
+                                    // Skip jika id_produk atau produk null (sku tidak dikenali)
+                                    if (!data.idproduk || !data.produk) {
+                                        console.warn(`⚠️ Skip insert id_pesanan ${data.id_pesanan} — id_produk atau produk null`);
+                                        return;
+                                    }
                                     // Jika belum ada, lakukan INSERT
                                     await connection.query(
                                         `INSERT INTO history_order_api

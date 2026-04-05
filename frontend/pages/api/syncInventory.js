@@ -205,6 +205,7 @@ async function proccesSyncInventory() {
                         const items = (response.data.data || []).flatMap(order => order.items);
                         const groupedMap = new Map();
                         items.forEach(item => {
+                            if (!item.sku) return; // skip item yang sku-nya null/undefined
                             const skuParts = item.sku.split(".");
                             const key = `${skuParts[0]}.${skuParts[1]}`;
                             const existing = groupedMap.get(key) || 0;
@@ -722,8 +723,8 @@ async function matchProduct(allProducts, result_detail) {
                     // Fallback for all-marketplace status
                     quantity = parseInt(element.qty);
                 } else {
-                    // No matching part
-                    quantity = 0;
+                    // Tidak ada entri di tb_notifikasi → pakai stok lokal langsung
+                    quantity = parseInt(element.qty) || 0;
                 }
 
                 stockMap[warehouse.id].stockList.push({
