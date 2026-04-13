@@ -785,8 +785,9 @@ export default function DaftarProduk() {
         idproduct: id_produk,
       })
       .then(function (response) {
+
         unregister("variasitransfer");
-        setdatasize(response.data.result.datasize);
+        setdatasize(sortSizes(response.data.result.datasize));
         settransferdefectModal(true);
       });
   }
@@ -943,7 +944,7 @@ export default function DaftarProduk() {
       })
       .then(function (response) {
         unregister("variasitransfer");
-        setdatasize(response.data.result.datasize);
+        setdatasize(sortSizes(response.data.result.datasize));
         settransferModal(true);
       });
   }
@@ -1202,6 +1203,18 @@ export default function DaftarProduk() {
   const [restockAPI_id_ware, setrestockAPI_id_ware] = React.useState("");
   const [datasize, setdatasize] = React.useState([]);
   const [datasize_sync, setdatasize_sync] = React.useState([]);
+
+  // ── Sort size: M3-W5 < M4-W6 < ... < M13-W15, W3 < W4, C7 < C8, dst ──
+  const sortSizes = (arr: any[]) =>
+    [...arr].sort((a, b) => {
+      const sa: string = (a.size ?? a ?? "").toString();
+      const sb: string = (b.size ?? b ?? "").toString();
+      const mA = sa.match(/^([A-Za-z]*)(\d+)/);
+      const mB = sb.match(/^([A-Za-z]*)(\d+)/);
+      if (!mA || !mB) return sa.localeCompare(sb);
+      if (mA[1] !== mB[1]) return mA[1].localeCompare(mB[1]);
+      return parseInt(mA[2]) - parseInt(mB[2]);
+    });
   const [data_po, setdata_po]: any = React.useState([]);
   const [data_po_sync, setdata_po_sync]: any = React.useState([]);
   const [tipepo, settipepo] = React.useState("");
@@ -1260,7 +1273,7 @@ export default function DaftarProduk() {
       })
       .then(function (response) {
         unregister("variasirestock");
-        setdatasize(response.data.result.datasize);
+        setdatasize(sortSizes(response.data.result.datasize));
       });
 
     await axios
@@ -1347,7 +1360,9 @@ export default function DaftarProduk() {
     ]);
 
     unregister("variasirestock");
-    setdatasize(sizeRes.data.result.datasize);
+    console.log("response", sizeRes.data);
+
+    setdatasize(sortSizes(sizeRes.data.result.datasize));
     setdata_po(histPoRes.data.result);
     const detailRows: any[] = spkDetailRes.data.result || [];
     setSpkDetailListRepeat(detailRows.map((r: any) => r.id_spk_detail));
@@ -1374,15 +1389,15 @@ export default function DaftarProduk() {
       return;
     }
 
-    if (restockType === "production" && !selectedSpkDetailRepeat) {
-      toast.warning("ID SPK Detail wajib diisi untuk Restock Production", {
-        position: toast.POSITION.TOP_RIGHT,
-        pauseOnHover: false,
-        autoClose: 2000,
-      });
-      setIsDisabled(false);
-      return;
-    }
+    // if (restockType === "production" && !selectedSpkDetailRepeat) {
+    //   toast.warning("ID SPK Detail wajib diisi untuk Restock Production", {
+    //     position: toast.POSITION.TOP_RIGHT,
+    //     pauseOnHover: false,
+    //     autoClose: 2000,
+    //   });
+    //   setIsDisabled(false);
+    //   return;
+    // }
 
     try {
       const response = await axios.post(`https://api.gudangsandal.com/v1/repeatstok`, {

@@ -1576,6 +1576,7 @@ const getSizesales = async (body) => {
     const tanggal_skrg = date.format(new Date(), "YYYY-MM-DD");
     const tahun = date.format(new Date(), "YY");
     try {
+
         await connection.beginTransaction();
 
         const [datasize] = await connection.query(
@@ -1590,6 +1591,7 @@ const getSizesales = async (body) => {
                     ELSE 1000
                 END`
         );
+
         const [stokready] = await connection.query(
             `SELECT qty,SUM(qty)as qty FROM tb_variation WHERE id_produk='${body.idproduct}' AND id_ware='${body.idware}' AND size='${body.size}' GROUP BY size`
         );
@@ -1615,8 +1617,21 @@ const getSizesales = async (body) => {
             `SELECT warehouse FROM tb_warehouse WHERE id_ware='${body.idware}'`
         );
 
-        const [get_hargajual] = await connection.query(
+        const [get_hargajual_raw] = await connection.query(
             `SELECT r_price FROM tb_produk WHERE id_produk='${body.idproduct}' AND id_ware='${body.idware}'`
+        );
+        // Fallback jika tidak ada data → default r_price = 0
+        const get_hargajual = get_hargajual_raw.length > 0 ? get_hargajual_raw : [{ r_price: 0 }];
+
+        // Daftar gudang yang memiliki stok untuk produk ini
+        const [warehouse_list] = await connection.query(
+            `SELECT tv.id_ware, tw.warehouse, SUM(tv.qty) as total_qty
+             FROM tb_variation tv
+             JOIN tb_warehouse tw ON tv.id_ware = tw.id_ware
+             WHERE tv.id_produk='${body.idproduct}'
+             GROUP BY tv.id_ware, tw.warehouse
+             HAVING SUM(tv.qty) > 0
+             ORDER BY tw.warehouse`
         );
 
         await connection.commit();
@@ -1630,6 +1645,7 @@ const getSizesales = async (body) => {
             display_id_ware,
             display_size,
             get_stokready,
+            warehouse_list,
         };
     } catch (error) {
         console.log(error);
@@ -2089,6 +2105,8 @@ const stockOpname = async (body) => {
                     `SELECT m_price FROM tb_purchaseorder WHERE id_produk='${data.id_produk}' AND id_ware="${data.id_gudang_pengirim}" AND m_price != '0' ORDER BY id DESC LIMIT 1`
                 );
 
+                var modal_last = get_modal_last?.m_price ?? 0;
+
                 var [getdatavariation] = await connection.query(
                     `SELECT id_produk,id_ware,idpo,size,qty,id_area FROM tb_variation WHERE id_produk='${data.id_produk}' AND id_ware='${data.id_gudang_pengirim}' AND size='${variasi[index].size}' ORDER BY id ASC`
                 );
@@ -2123,12 +2141,13 @@ const stockOpname = async (body) => {
                 }
             }
         }
-        var total_amount = total_qty * parseInt(get_modal_last[0].m_price);
+
+        var total_amount = total_qty * parseInt(modal_last);
 
         await connection.query(
             `INSERT INTO tb_purchaseorder
             (idpo, tanggal_receive, id_sup, id_produk, id_ware, qty, m_price, total_amount, tipe_order, id_act, users, created_at, updated_at)
-            VALUES ('${idpo}','${tanggal_skrg}','SO_GUDANG','${data.id_produk}','${data.id_gudang_pengirim}','${total_qty}','${get_modal_last[0].m_price}','${total_amount}','SO_GUDANG','${id_act}','${body.users}','${tanggal}','${tanggal}')`
+            VALUES ('${idpo}','${tanggal_skrg}','SO_GUDANG','${data.id_produk}','${data.id_gudang_pengirim}','${total_qty}','${modal_last}','${total_amount}','SO_GUDANG','${id_act}','${body.users}','${tanggal}','${tanggal}')`
         );
 
         await connection.commit();
@@ -3929,7 +3948,7 @@ const getSizebarcode = async (body) => {
         await connection.beginTransaction();
 
         const [data_getsize] = await connection.query(
-            `SELECT *,SUM(qty)as qty FROM tb_variationorder WHERE id_produk='${body.idproduct}' AND id_ware='${body.idware}' AND idpo='${body.idpo}' AND qty >= 0 GROUP BY size`
+            `SELECT *,SUM(qty)as qty FROM tb_variationorder WHERE id_produk='${body.idproduct}' AND id_ware='${body.idware}' AND qty >= 0 GROUP BY size`
         );
 
         await connection.commit();
@@ -9289,136 +9308,176 @@ const cekbeforeordermassal = async (body) => {
     try {
         const result = body.result;
 
-        // Buat array id_produk, id_ware, dan size untuk query batch
+        // ── Batch query 1: SUM(qty) per (id_produk, id_ware, size) dari SKU ────────
         const queries = result.map(item => `('${item.id_produk}', '${item.id_ware}', '${item.size}')`).join(',');
 
-        // Query untuk menghitung SUM(qty) sebagai qty_ready
-        const sumQuery = `
-            SELECT 
+        const [sumRows] = await connection.query(`
+            SELECT
                 tb_produk.id_produk,
                 tb_produk.id_ware,
                 tb_variation.size,
                 SUM(tb_variation.qty) AS qty_ready
             FROM tb_produk
-            LEFT JOIN tb_variation 
-                ON tb_variation.id_produk = tb_produk.id_produk 
+            LEFT JOIN tb_variation
+                ON tb_variation.id_produk = tb_produk.id_produk
                 AND tb_variation.id_ware = tb_produk.id_ware
             WHERE (tb_produk.id_produk, tb_produk.id_ware, tb_variation.size) IN (${queries})
-            GROUP BY tb_produk.id_produk, tb_produk.id_ware, tb_variation.size;
-        `;
+            GROUP BY tb_produk.id_produk, tb_produk.id_ware, tb_variation.size
+        `);
 
-        // Eksekusi query untuk menghitung SUM(qty)
-        const [sumRows] = await connection.query(sumQuery);
-
-        // Query untuk mengambil data produk dan warehouse
-        const productQuery = `
-            SELECT 
-                tb_produk.produk, 
-                tb_produk.img, 
-                tb_produk.r_price, 
-                tb_produk.g_price, 
-                tb_warehouse.warehouse, 
-                tb_variation.size, 
+        // ── Batch query 2: data produk + warehouse per (id_produk, id_ware, size) ──
+        const [productRows] = await connection.query(`
+            SELECT DISTINCT
+                tb_produk.produk,
+                tb_produk.img,
+                tb_produk.r_price,
+                tb_produk.g_price,
+                tb_warehouse.warehouse,
+                tb_variation.size,
                 tb_produk.id_produk,
                 tb_produk.id_ware
             FROM tb_produk
-            LEFT JOIN tb_warehouse 
-                ON tb_warehouse.id_ware = tb_produk.id_ware 
-            LEFT JOIN tb_variation 
-                ON tb_variation.id_produk = tb_produk.id_produk 
+            LEFT JOIN tb_warehouse ON tb_warehouse.id_ware = tb_produk.id_ware
+            LEFT JOIN tb_variation
+                ON tb_variation.id_produk = tb_produk.id_produk
                 AND tb_variation.id_ware = tb_produk.id_ware
             WHERE (tb_produk.id_produk, tb_produk.id_ware, tb_variation.size) IN (${queries})
-        `;
+        `);
 
-        // Eksekusi query untuk mengambil data produk dan warehouse
-        const [productRows] = await connection.query(productQuery);
-
-        // Buat array untuk menyimpan hasil akhir
         const datas = [];
 
-        // Iterasi setiap item di result
-        result.forEach(item => {
+        // ── Gunakan for...of agar bisa await untuk fallback query ─────────────────
+        for (const item of result) {
 
-            // Cari data yang sesuai dari hasil query SQL (produk dan warehouse)
-            const matchedProductRow = productRows.find(
-                row =>
-                    row.id_produk === item.id_produk &&
-                    row.id_ware === item.id_ware &&
-                    row.size === item.size
+            const matchedProductRow = productRows.find(row =>
+                row.id_produk === item.id_produk &&
+                row.id_ware   === item.id_ware   &&
+                row.size      === item.size
+            );
+            const matchedSumRow = sumRows.find(row =>
+                row.id_produk === item.id_produk &&
+                row.id_ware   === item.id_ware   &&
+                row.size      === item.size
             );
 
-            // Cari data SUM(qty) yang sesuai dari hasil query SUM
-            const matchedSumRow = sumRows.find(
-                row =>
-                    row.id_produk === item.id_produk &&
-                    row.id_ware === item.id_ware &&
-                    row.size === item.size
-            );
+            const qtyReadyOriginal = (matchedSumRow && matchedSumRow.qty_ready != null)
+                ? parseInt(matchedSumRow.qty_ready)
+                : 0;
 
-            // Jika data ditemukan, gabungkan dengan item dari result
-            if (matchedProductRow && matchedSumRow) {
+            // ── Warehouse asal punya stok → langsung pakai ───────────────────────
+            if (matchedProductRow && qtyReadyOriginal > 0) {
                 datas.push({
-                    id_produk: item.id_produk,
-                    id_ware: item.id_ware,
-                    id_store: item.id_store,
-                    produk: matchedProductRow.produk,
-                    size: item.size,
-                    img: item.gambar_produk || matchedProductRow.img,
-                    // harga_jual: parseInt(matchedProductRow.r_price) + parseInt(25000),
-                    harga_jual: matchedProductRow.g_price,
-                    source: "Gudang : " + matchedProductRow.warehouse,
-                    qty_ready: matchedSumRow.qty_ready, // Ambil qty_ready dari hasil SUM(qty)
-                    qtysales: item.quantity,
-                    no_pesanan: item.no_pesanan,
-                    total_amount: item.total_amount,
-                    morethan: item.morethan,
+                    id_produk       : item.id_produk,
+                    id_ware         : item.id_ware,         // warehouse dari SKU
+                    id_ware_original: item.id_ware,
+                    id_store        : item.id_store,
+                    produk          : matchedProductRow.produk,
+                    size            : item.size,
+                    img             : item.gambar_produk || matchedProductRow.img,
+                    harga_jual      : matchedProductRow.g_price,
+                    source          : "Gudang : " + matchedProductRow.warehouse,
+                    qty_ready       : qtyReadyOriginal,
+                    qtysales        : item.quantity,
+                    no_pesanan      : item.no_pesanan,
+                    total_amount    : item.total_amount,
+                    morethan        : item.morethan,
+                    fallback_used   : false,
+                });
+                continue;
+            }
+
+            // ── Warehouse asal kosong → cari fallback ware dengan stok terbanyak ─
+            // JOIN tb_produk untuk ambil harga/img dari ware fallback yang benar
+            // JOIN tb_warehouse untuk nama gudang yang tepat
+            // ORDER BY qty_ready DESC → pilih ware dengan stok paling banyak
+            const [fallbackRows] = await connection.query(`
+                SELECT
+                    tv.id_ware,
+                    tw.warehouse,
+                    tp.produk,
+                    tp.img,
+                    tp.r_price,
+                    tp.g_price,
+                    SUM(tv.qty) AS qty_ready
+                FROM tb_variation tv
+                JOIN tb_warehouse tw ON tw.id_ware = tv.id_ware
+                JOIN tb_produk    tp ON tp.id_produk = tv.id_produk AND tp.id_ware = tv.id_ware
+                WHERE tv.id_produk = ?
+                  AND tv.size      = ?
+                  AND tv.id_ware  != ?
+                  AND tv.qty       > 0
+                GROUP BY tv.id_ware, tw.warehouse, tp.produk, tp.img, tp.r_price, tp.g_price
+                ORDER BY qty_ready DESC
+                LIMIT 1
+            `, [item.id_produk, item.size, item.id_ware]);
+
+            if (fallbackRows.length > 0) {
+                // ── Fallback warehouse ditemukan ─────────────────────────────────
+                const fb = fallbackRows[0];
+                console.log(`[cekbefore] FALLBACK: ${item.id_produk} size ${item.size} | ${item.id_ware} (kosong) → ${fb.id_ware} (qty=${fb.qty_ready}) | pesanan=${item.no_pesanan}`);
+                datas.push({
+                    id_produk       : item.id_produk,
+                    id_ware         : fb.id_ware,           // warehouse fallback (yang ada stok)
+                    id_ware_original: item.id_ware,          // simpan asal SKU untuk logging
+                    id_store        : item.id_store,
+                    produk          : fb.produk,
+                    size            : item.size,
+                    img             : item.gambar_produk || fb.img,
+                    harga_jual      : fb.g_price,            // harga dari ware fallback
+                    source          : "Gudang : " + fb.warehouse, // nama gudang fallback
+                    qty_ready       : parseInt(fb.qty_ready),
+                    qtysales        : item.quantity,
+                    no_pesanan      : item.no_pesanan,
+                    total_amount    : item.total_amount,
+                    morethan        : item.morethan,
+                    fallback_used   : true,
                 });
             } else {
-                // Jika data tidak ditemukan, tetap masukkan item dari result dengan nilai default
+                // ── Benar-benar tidak ada stok di warehouse manapun → qty_ready=0 → SKIP → pending ──
+                console.log(`[cekbefore] NO STOCK: ${item.id_produk} size ${item.size} | tidak ada stok di semua warehouse | pesanan=${item.no_pesanan}`);
                 datas.push({
-                    id_produk: item.id_produk,
-                    id_ware: item.id_ware,
-                    id_store: item.id_store,
-                    produk: null,
-                    size: item.size,
-                    img: item.gambar_produk || null,
-                    harga_jual: null,
-                    source: null,
-                    qty_ready: 0, // Default value jika data tidak ditemukan
-                    qtysales: item.quantity,
-                    no_pesanan: item.no_pesanan,
-                    total_amount: item.total_amount,
-                    morethan: item.morethan,
+                    id_produk       : item.id_produk,
+                    id_ware         : item.id_ware,
+                    id_ware_original: item.id_ware,
+                    id_store        : item.id_store,
+                    produk          : matchedProductRow ? matchedProductRow.produk : null,
+                    size            : item.size,
+                    img             : item.gambar_produk || (matchedProductRow ? matchedProductRow.img : null),
+                    harga_jual      : matchedProductRow ? matchedProductRow.g_price : null,
+                    source          : matchedProductRow ? "Gudang : " + matchedProductRow.warehouse : null,
+                    qty_ready       : 0,
+                    qtysales        : item.quantity,
+                    no_pesanan      : item.no_pesanan,
+                    total_amount    : item.total_amount,
+                    morethan        : item.morethan,
+                    fallback_used   : false,
                 });
             }
-        });
+        }
 
-        // Grup berdasarkan no_pesanan
+        // ── Grup berdasarkan no_pesanan ───────────────────────────────────────────
         const groupedData = datas.reduce((acc, item) => {
             if (!acc[item.no_pesanan]) {
                 acc[item.no_pesanan] = {
-                    no_pesanan: item.no_pesanan,
+                    no_pesanan   : item.no_pesanan,
                     total_qtysales: 0,
-                    total_amount: item.total_amount,
-                    items: [],
+                    total_amount : item.total_amount,
+                    items        : [],
                 };
             }
             acc[item.no_pesanan].total_qtysales += item.qtysales;
-            acc[item.no_pesanan].items.push({
-                ...item,
-                morethan: item.morethan
-            });
+            acc[item.no_pesanan].items.push({ ...item });
             return acc;
         }, {});
 
         const resultGrouped = Object.values(groupedData);
 
-        await connection.release();
-
+        connection.release();
         return resultGrouped;
+
     } catch (error) {
-        console.error(error);
-        await connection.release();
+        console.error('[cekbeforeordermassal] error:', error);
+        connection.release();
         throw error;
     }
 };

@@ -209,8 +209,9 @@ export default function Expense() {
   const [pilih_warehouse, setpilih_warehouse] = React.useState("close");
   const [datasize, setdatasize] = React.useState([]);
 
-  const [sizeSelected, setsizeSelected] = React.useState(null);
-  const [stokReady, setstokReady] = React.useState(0);
+  const [sizeSelected, setsizeSelected] = React.useState(null); // legacy, tidak dipakai di print
+  const [stokReady, setstokReady] = React.useState(0);          // legacy
+  const [selectedSizes, setSelectedSizes] = React.useState<{ size: string; qty: number }[]>([]);
 
   const [PrintProduk, setPrintProduk] = React.useState("");
   const [PrintWare, setPrintWare] = React.useState("");
@@ -233,6 +234,7 @@ export default function Expense() {
     setpilih_warehouse("loading");
     setsizeSelected(null);
     setstokReady(0);
+    setSelectedSizes([]);
     setaddmodal_submit(true);
     setSizeSource("po");
     // Reset SPK detail selection ketika pilih PO
@@ -259,30 +261,48 @@ export default function Expense() {
 
   {
     for (let index = 0; index < datasize.length; index++) {
-      if (datasize[index].qty >= 0) {
+      const sz = datasize[index].size;
+      const qty = parseInt(datasize[index].qty);
+      const isSelected = selectedSizes.some((s: any) => s.size === sz);
+      const isZero = qty === 0;
+
+      if (qty >= 0) {
         list_size.push(
           <div
             onClick={() => {
-              setsizeSelected(datasize[index].size);
-              setstokReady(parseInt(datasize[index].qty));
+              setSelectedSizes((prev: any) => {
+                const exists = prev.some((s: any) => s.size === sz);
+                const next = exists
+                  ? prev.filter((s: any) => s.size !== sz)
+                  : [...prev, { size: sz, qty }];
+                // Kalau setelah toggle hanya 1 size → auto-fill custom qty
+                if (next.length === 1) setstokReady(next[0].qty);
+                else setstokReady(0);
+                return next;
+              });
               setaddmodal_submit(false);
             }}
             key={index}
-            className={`${sizeSelected === datasize[index].size
-              ? "bg-blue-500 text-white"
-              : "text-blue-500"
-              } font-medium py-2 text-center rounded-lg border border-blue-500 cursor-pointer`}
+            className={`font-medium py-2 text-center rounded-lg border cursor-pointer select-none
+              ${isSelected
+                ? isZero
+                  ? "bg-red-500 text-white border-red-500"
+                  : "bg-blue-500 text-white border-blue-500"
+                : isZero
+                  ? "text-red-400 border-red-400 hover:bg-red-50"
+                  : "text-blue-500 border-blue-500 hover:bg-blue-50"
+              }`}
           >
-            {datasize[index].size} = {datasize[index].qty}
+            {sz} = {qty}
           </div>
         );
       } else {
         list_size.push(
           <div
             key={index}
-            className=" text-gray-500 font-medium py-2 text-center rounded-lg border border-gray-500"
+            className="text-gray-500 font-medium py-2 text-center rounded-lg border border-gray-500"
           >
-            {datasize[index].size} = {datasize[index].qty}
+            {sz} = {qty}
           </div>
         );
       }
@@ -319,6 +339,7 @@ export default function Expense() {
     setaddmodal_submit(true);
     setsizeSelected(null);
     setstokReady(0);
+    setSelectedSizes([]);
     setPOManual("");
     setSpkDetailSelected("");
     setSpkDetailOptions([]);
@@ -343,6 +364,7 @@ export default function Expense() {
     setpilih_warehouse("loading");
     setsizeSelected(null);
     setstokReady(0);
+    setSelectedSizes([]);
     setaddmodal_submit(true);
     setSizeSource("spk");
     const res = await axios.post(`https://api.gudangsandal.com/v1/get_size_by_spk_detail`, {
@@ -371,175 +393,171 @@ export default function Expense() {
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
     const italicFont = await pdfDoc.embedFont(StandardFonts.HelveticaOblique);
 
-    const ctx = document.createElement("canvas");
-    bwipjs.toCanvas(ctx, {
-      bcid: 'qrcode',
-      text: `${PrintIDProduk}.${sizeSelected}`,
-      scale: 2,
-      height: 2,
-      includetext: false,
-    });
+    // Kumpulkan semua label: tiap size × qty-nya
+    // Jika tepat 1 size dipilih → gunakan stokReady (custom qty dari input)
+    // Jika >1 size dipilih    → gunakan qty masing-masing size
+    const printQueue: { size: string; qty: number }[] = selectedSizes.length === 1
+      ? [{ size: selectedSizes[0].size, qty: stokReady }]
+      : selectedSizes.length > 1
+        ? selectedSizes
+        : sizeSelected ? [{ size: sizeSelected, qty: stokReady }] : [];
 
-    const barcodeDataUrl = ctx.toDataURL("image/png");
-    const barcodeImage = await pdfDoc.embedPng(barcodeDataUrl);
+    let globalLabelIndex = 0; // counter label global lintas semua size
+    let page: any = null;
 
-    for (let i = 0; i < stokReady; i++) {
-      if (i % 2 === 0) {
-        var page = pdfDoc.addPage([pageWidth, pageHeight]);
-      }
-      // const labelWidth = 141.7;
-      const totalLabelWidth = labelWidth + marginLeft + marginRight;
-      const xOffset = (i % 2) * totalLabelWidth + marginLeft;
-      // availableWidth declared above
-      const { width, height } = page.getSize();
-
-      // page.drawText(`PO. FARS ${POManual}`, {
-      //   x: xOffset + 48,
-      //   y: height - 14,
-      //   size: 7.3,
-      //   font: italicFont,
-      //   color: rgb(0, 0, 0),
-      // });
-
-      page.drawImage(barcodeImage, {
-        x: xOffset - 2,
-        y: height - 50,
-        width: 43,
-        height: 43,
+    for (const { size: currentSize, qty: currentQty } of printQueue) {
+      const ctx = document.createElement("canvas");
+      bwipjs.toCanvas(ctx, {
+        bcid: 'qrcode',
+        text: `${PrintIDProduk}.${currentSize}`,
+        scale: 2,
+        height: 2,
+        includetext: false,
       });
 
-      const idProdukText = `${PrintIDProduk}.${sizeSelected}`;
-      if (sizeSelected.length > 1 && sizeSelected.length < 3) {
-        var fixedFontSize = 6.1;
-      } else if (sizeSelected.length > 2) {
-        var fixedFontSize = 5.7;
-      } else {
-        var fixedFontSize = 6.7;
-      }
+      const barcodeDataUrl = ctx.toDataURL("image/png");
+      const barcodeImage = await pdfDoc.embedPng(barcodeDataUrl);
 
-      // availableWidth declared above
+      for (let i = 0; i < currentQty; i++) {
+        const globalI = globalLabelIndex++;
+        if (globalI % 2 === 0) {
+          page = pdfDoc.addPage([pageWidth, pageHeight]);
+        }
+        const totalLabelWidth = labelWidth + marginLeft + marginRight;
+        const xOffset = (globalI % 2) * totalLabelWidth + marginLeft;
+        const { width, height } = page.getSize();
 
-      // Estimate width and insert extra spacing
-      const rawWidth = font.widthOfTextAtSize(idProdukText, fixedFontSize);
-      const extraSpacing = Math.floor((availableWidth - rawWidth) / (fixedFontSize / 2));
-      const spacedText = idProdukText.split('').join(' '.repeat(extraSpacing > 0 ? 0.5 : 0));
-      const spacedTextWidth = font.widthOfTextAtSize(spacedText, fixedFontSize);
+        page.drawImage(barcodeImage, {
+          x: xOffset - 2,
+          y: height - 50,
+          width: 43,
+          height: 43,
+        });
 
-      page.drawText(spacedText, {
-        x: xOffset - 42 + (availableWidth - spacedTextWidth) / 2,
-        y: height - 56,
-        size: fixedFontSize,
-        font: font,
-        color: rgb(0, 0, 0),
-      });
-
-      // --- WRAP PRODUK TEXT (max 22 chars per line) ---
-      const wrapProdukText = (
-        text: string,
-        maxCharsPerLine: number,
-        maxLines: number = 3
-      ) => {
-        const words = (text || "").trim().split(/\s+/).filter(Boolean);
-        const lines: string[] = [];
-
-        let current = "";
-
-        const pushCurrent = () => {
-          if (current && lines.length < maxLines) lines.push(current);
-          current = "";
-        };
-
-        for (const word of words) {
-          if (lines.length >= maxLines) break;
-
-          // If a single word is longer than the limit, split it across lines
-          if (word.length > maxCharsPerLine) {
-            // flush current line first
-            pushCurrent();
-            let start = 0;
-            while (start < word.length && lines.length < maxLines) {
-              lines.push(word.slice(start, start + maxCharsPerLine));
-              start += maxCharsPerLine;
-            }
-            continue;
-          }
-
-          const candidate = current ? `${current} ${word}` : word;
-          if (candidate.length <= maxCharsPerLine) {
-            current = candidate;
-          } else {
-            pushCurrent();
-            current = word;
-          }
+        const idProdukText = `${PrintIDProduk}.${currentSize}`;
+        let fixedFontSize: number;
+        if (currentSize.length > 1 && currentSize.length < 3) {
+          fixedFontSize = 6.1;
+        } else if (currentSize.length > 2) {
+          fixedFontSize = 5.7;
+        } else {
+          fixedFontSize = 6.7;
         }
 
-        // push remainder
-        if (lines.length < maxLines) pushCurrent();
+        const rawWidth = font.widthOfTextAtSize(idProdukText, fixedFontSize);
+        const extraSpacing = Math.floor((availableWidth - rawWidth) / (fixedFontSize / 2));
+        const spacedText = idProdukText.split('').join(' '.repeat(extraSpacing > 0 ? 0.5 : 0));
+        const spacedTextWidth = font.widthOfTextAtSize(spacedText, fixedFontSize);
 
-        return lines;
-      };
-
-      const truncatedProdukLines = wrapProdukText(PrintProduk, 22, 3);
-      for (let i = 0; i < truncatedProdukLines.length; i++) {
-        page.drawText(truncatedProdukLines[i], {
-          x: xOffset + 48,
-          y: height - 15 - (i * 10),
-          size: 9.5,
+        page.drawText(spacedText, {
+          x: xOffset - 42 + (availableWidth - spacedTextWidth) / 2,
+          y: height - 56,
+          size: fixedFontSize,
           font: font,
           color: rgb(0, 0, 0),
         });
-      }
 
-      if (sizeSelected.length > 1 && sizeSelected.length < 3) {
-        var fixedFontHarga = 11.5;
-      } else if (sizeSelected.length > 2) {
-        var fixedFontHarga = 10;
-      } else {
-        var fixedFontHarga = 12;
-      }
+        // --- WRAP PRODUK TEXT (max 22 chars per line) ---
+        const wrapProdukText = (
+          text: string,
+          maxCharsPerLine: number,
+          maxLines: number = 3
+        ) => {
+          const words = (text || "").trim().split(/\s+/).filter(Boolean);
+          const lines: string[] = [];
 
-      // page.drawText(`IDR. ${PrintPrice.toLocaleString('id-ID')}`, {
-      //   x: xOffset + 48,
-      //   y: 10,
-      //   size: fixedFontHarga,
-      //   font: boldFont,
-      //   color: rgb(0, 0, 0),
-      // });
+          let current = "";
 
-      // Draw a rectangle and center the size text inside it
-      const sizeText = `${sizeSelected}`;
-      const sizeFontSize = 13;
-      const sizeTextWidth = boldFont.widthOfTextAtSize(sizeText, sizeFontSize);
-      const boxWidth = sizeTextWidth + 7;
-      const boxHeight = 16;
-      let boxX: number;
-      let boxY: number = 8;
+          const pushCurrent = () => {
+            if (current && lines.length < maxLines) lines.push(current);
+            current = "";
+          };
 
-      if (sizeSelected.length > 1 && sizeSelected.length < 3) {
-        boxX = xOffset + 104 - 3;
-      } else if (sizeSelected.length > 2) {
-        boxX = xOffset + 96 - 3;
-      } else {
-        boxX = xOffset + 110 - 3;
-      }
+          for (const word of words) {
+            if (lines.length >= maxLines) break;
 
-      page.drawRectangle({
-        x: boxX,
-        y: boxY,
-        width: boxWidth,
-        height: boxHeight,
-        borderColor: rgb(0, 0, 0),
-        borderWidth: 0.5,
-      });
+            // If a single word is longer than the limit, split it across lines
+            if (word.length > maxCharsPerLine) {
+              // flush current line first
+              pushCurrent();
+              let start = 0;
+              while (start < word.length && lines.length < maxLines) {
+                lines.push(word.slice(start, start + maxCharsPerLine));
+                start += maxCharsPerLine;
+              }
+              continue;
+            }
 
-      page.drawText(sizeText, {
-        x: boxX + 3.7,
-        y: boxY + 3.4,
-        size: sizeFontSize,
-        font: boldFont,
-        color: rgb(0, 0, 0),
-      });
-    }
+            const candidate = current ? `${current} ${word}` : word;
+            if (candidate.length <= maxCharsPerLine) {
+              current = candidate;
+            } else {
+              pushCurrent();
+              current = word;
+            }
+          }
+
+          // push remainder
+          if (lines.length < maxLines) pushCurrent();
+
+          return lines;
+        };
+
+        const truncatedProdukLines = wrapProdukText(PrintProduk, 22, 3);
+        for (let i = 0; i < truncatedProdukLines.length; i++) {
+          page.drawText(truncatedProdukLines[i], {
+            x: xOffset + 48,
+            y: height - 15 - (i * 10),
+            size: 9.5,
+            font: font,
+            color: rgb(0, 0, 0),
+          });
+        }
+
+        let fixedFontHarga: number;
+        if (currentSize.length > 1 && currentSize.length < 3) {
+          fixedFontHarga = 11.5;
+        } else if (currentSize.length > 2) {
+          fixedFontHarga = 10;
+        } else {
+          fixedFontHarga = 12;
+        }
+
+        // Draw a rectangle and center the size text inside it
+        const sizeText = `${currentSize}`;
+        const sizeFontSize = 13;
+        const sizeTextWidth = boldFont.widthOfTextAtSize(sizeText, sizeFontSize);
+        const boxWidth = sizeTextWidth + 7;
+        const boxHeight = 16;
+        let boxX: number;
+        const boxY: number = 8;
+
+        if (currentSize.length > 1 && currentSize.length < 3) {
+          boxX = xOffset + 104 - 3;
+        } else if (currentSize.length > 2) {
+          boxX = xOffset + 96 - 3;
+        } else {
+          boxX = xOffset + 110 - 3;
+        }
+
+        page.drawRectangle({
+          x: boxX,
+          y: boxY,
+          width: boxWidth,
+          height: boxHeight,
+          borderColor: rgb(0, 0, 0),
+          borderWidth: 0.5,
+        });
+
+        page.drawText(sizeText, {
+          x: boxX + 3.7,
+          y: boxY + 3.4,
+          size: sizeFontSize,
+          font: boldFont,
+          color: rgb(0, 0, 0),
+        });
+      } // end for i < currentQty
+    } // end for printQueue
 
     const pdfBytes = await pdfDoc.save();
     const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
@@ -734,17 +752,37 @@ export default function Expense() {
                     })()}
                   </div>
 
-                  <div className="mt-6">
-                    <label className="block mb-2 text-sm font-medium text-black">
-                      Qty Print Barcode
-                    </label>
-                    <input
-                      className={`border h-[45px]  w-[100%] pr-3 pl-5  text-gray-700 focus:outline-none rounded-lg`}
-                      type="number"
-                      value={stokReady}
-                      onChange={(e) => setstokReady(parseInt(e.target.value))}
-                    />
-                  </div>
+                  {/* Custom qty — hanya muncul jika tepat 1 size dipilih */}
+                  {selectedSizes.length === 1 && (
+                    <div className="mt-4">
+                      <label className="block mb-2 text-sm font-medium text-black">
+                        Qty Print Barcode
+                      </label>
+                      <input
+                        className="border h-[45px] w-[100%] pr-3 pl-5 text-gray-700 focus:outline-none rounded-lg"
+                        type="number"
+                        min={1}
+                        value={stokReady}
+                        onChange={(e) => setstokReady(parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                  )}
+
+                  {/* Ringkasan multi-size — hanya muncul jika >1 size dipilih */}
+                  {selectedSizes.length > 1 && (
+                    <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-xs font-semibold text-blue-600 mb-1">
+                        {selectedSizes.length} size dipilih — Total {selectedSizes.reduce((s: any, x: any) => s + x.qty, 0)} label
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {selectedSizes.map((s: any) => (
+                          <span key={s.size} className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                            {s.size} × {s.qty}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="mt-6">
                     <label className="block mb-2 text-sm font-medium text-black">
@@ -790,14 +828,19 @@ export default function Expense() {
                     Close
                   </button>
                   <button
-                    className={`${addmodal_submit === true ? "bg-gray-500" : "bg-blue-500"
-                      }  text-white font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1`}
+                    className={`${addmodal_submit === true || selectedSizes.length === 0 ? "bg-gray-400 cursor-not-allowed" : "bg-blue-500 hover:shadow-lg"
+                      } text-white font-bold uppercase text-sm px-6 py-3 rounded shadow outline-none focus:outline-none mr-1 mb-1`}
                     type="button"
                     onClick={() => {
-                      addmodal_submit === true ? null : printAct();
+                      if (addmodal_submit === true || selectedSizes.length === 0) return;
+                      printAct();
                     }}
                   >
-                    Print Barcode
+                    Print Barcode {selectedSizes.length === 1
+                      ? `(${stokReady})`
+                      : selectedSizes.length > 1
+                        ? `(${selectedSizes.reduce((s: any, x: any) => s + x.qty, 0)})`
+                        : ""}
                   </button>
                 </div>
               </div>

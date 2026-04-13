@@ -324,6 +324,8 @@ export default function AddOrder() {
 
   const [pilih_warehouse, setpilih_warehouse] = React.useState("close");
   const [datasize, setdatasize] = React.useState([]);
+  const [warehouseList, setWarehouseList] = React.useState<{ id_ware: string; warehouse: string; total_qty: number }[]>([]);
+  const [modalWare, setModalWare] = React.useState("");
 
   async function getwaress(e: any) {
     await axios
@@ -338,26 +340,30 @@ export default function AddOrder() {
       });
 
   }
-  async function getStock(e: any, idproduk: any) {
+  async function getStock(idware: any, idproduk: any) {
     setpilih_warehouse("loading");
     setsizeSelected(null);
     setstokReady(0);
     setaddmodal_submit(true);
     setaddmodal_qty(1);
 
-    setaddmodal_warehouse(e);
+    const targetWare = idware || cariwaress;
+    setModalWare(targetWare);
+    setaddmodal_warehouse(targetWare);
     await axios
       .post(`https://api.gudangsandal.com/v1/getsizesales`, {
-        idware: cariwaress,
+        idware: targetWare,
         idproduct: idproduk,
       })
       .then(function (response) {
         setpilih_warehouse("open");
         setdatasize(response.data.result.datasize);
         setdatahargajual(response.data.result.get_hargajual[0].r_price - 100000);
-        setdatagudangawal(response.data.result.gudang_awal[0].warehouse);
+        setdatagudangawal(response.data.result.gudang_awal[0]?.warehouse || "");
+        if (response.data.result.warehouse_list) {
+          setWarehouseList(response.data.result.warehouse_list);
+        }
       });
-    // }
   }
 
   const [get_displayed, setgetdisplayed] = React.useState("display_false");
@@ -556,7 +562,7 @@ export default function AddOrder() {
         qty: qty,
         img: img,
         source: source,
-        id_ware: cariwaress,
+        id_ware: id_ware,
         harga_jual: harga_jual,
         payment: "PAID",
       };
@@ -862,15 +868,10 @@ export default function AddOrder() {
     setaddmodal_qty(1);
     setaddmodal_submit(true);
     setpilih_warehouse("close");
+    setWarehouseList([]);
+    setModalWare(cariwaress);
     setaddmodal(true);
-    // if (
-    //   "SUPER-ADMIN" === Cookies.get("auth_role") ||
-    //   "HEAD-AREA" === Cookies.get("auth_role")
-    // ) {
-    // } else {
-    getStock(get_idware, idproduk);
-    // }
-    // console.log(idproduk)
+    getStock(cariwaress, idproduk);
   }
 
   function openaddmodalexternal(
@@ -897,7 +898,79 @@ export default function AddOrder() {
   const [TotalPembayaran, setTotalPembayaran] = React.useState(0);
   const [TombolTambahOrder, setTombolTambahOrder] = React.useState(false);
 
+  // Import Excel
+  const importFileRef = React.useRef<HTMLInputElement>(null);
+  const [importLoading, setImportLoading] = React.useState(false);
+  const [importResults, setImportResults] = React.useState<any[]>([]);
+  const [showImportModal, setShowImportModal] = React.useState(false);
+
+  const handleImportExcel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // reset input so same file can be re-imported
+    e.target.value = "";
+
+    try {
+      const XLSX = await import("xlsx");
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows: any[] = XLSX.utils.sheet_to_json(sheet, { defval: "" });
+
+      if (rows.length === 0) {
+        toast.warning("File Excel kosong", { position: toast.POSITION.TOP_RIGHT, autoClose: 2000 });
+        return;
+      }
+
+      // Validate columns
+      const required = ["id_store", "id_pesanan", "id_produk", "id_ware", "size", "qty", "total_payment"];
+      const headers = Object.keys(rows[0]);
+      const missing = required.filter((c) => !headers.includes(c));
+      if (missing.length > 0) {
+        toast.error(`Kolom tidak ditemukan: ${missing.join(", ")}`, { position: toast.POSITION.TOP_RIGHT, autoClose: 4000 });
+        return;
+      }
+
+      const payload = rows.map((r) => ({
+        id_store: String(r.id_store).trim(),
+        id_pesanan: String(r.id_pesanan).trim(),
+        id_produk: String(r.id_produk).trim(),
+        id_ware: String(r.id_ware).trim(),
+        size: String(r.size).trim(),
+        qty: Number(r.qty) || 1,
+        total_payment: Number(r.total_payment) || 0,
+      }));
+
+      setImportLoading(true);
+      const res = await fetch(`https://api.gudangsandal.com/v1/importorderbulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows: payload, id_users: Users }),
+      });
+      const json = await res.json();
+      setImportLoading(false);
+
+      if (json.result) {
+        setImportResults(json.result);
+        setShowImportModal(true);
+      } else {
+        toast.error("Gagal import: " + (json.message || "Unknown error"), { position: toast.POSITION.TOP_RIGHT, autoClose: 3000 });
+      }
+    } catch (err) {
+      setImportLoading(false);
+      console.error(err);
+      toast.error("Gagal membaca file Excel", { position: toast.POSITION.TOP_RIGHT, autoClose: 3000 });
+    }
+  };
+
   const onSavesales = async (data: any) => {
+    // console.log("rowsData", rowsData);
+    // console.log("data.id_pesanan", data.id_pesanan);
+    // console.log("date", date);
+    // console.log("data.store", data.store);
+    // console.log("TotalPembayaran", TotalPembayaran);
+    // console.log("Users", Users);
+    // console.log("get_displayed", get_displayed);
 
     if (rowsData.length < 1) {
       toast.warning("Produk Belum Ditambahkan", {
@@ -997,18 +1070,28 @@ export default function AddOrder() {
                               </>
                             ) : (
                               <> */}
-                        <select
-                          // onChange={(e) => getStock(e)}
-                          className="appearance-none h-auto cursor-pointer rounded-lg w-full bg-white py-2 px-5 focus:outline-none border text-sm"
-                          placeholder="Pilih Warehouse"
-                          disabled={true}
-                        >
-                          {/* <option value="">Pilih Warehouse</option> */}
-                          <option value="">{cariwaress_nama}</option>
-                        </select>
-                        <i className="fi fi-rr-angle-small-down w-[1.12rem] h-[1.12rem] text-center text-gray-500 text-[1.12rem] leading-4 absolute mr-5"></i>
-                        {/* </>
-                            )} */}
+                        {/* Warehouse chips — klik untuk ganti gudang */}
+                        {warehouseList.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {warehouseList.map((w) => (
+                              <button
+                                key={w.id_ware}
+                                type="button"
+                                onClick={() => getStock(w.id_ware, addmodal_idproduk)}
+                                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${modalWare === w.id_ware
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white text-blue-500 border-blue-400 hover:bg-blue-50"
+                                  }`}
+                              >
+                                {w.warehouse} <span className="opacity-70">({w.total_qty})</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 py-1 px-2 border rounded-lg">
+                            {cariwaress_nama}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1120,33 +1203,18 @@ export default function AddOrder() {
 
                       <button
                         onClick={() => {
-                          if (addmodal_warehouse === null) {
-                            addProduk(
-                              addmodal_produk,
-                              addmodal_idproduk,
-                              sizeSelected,
-                              200000,
-                              addmodal_img,
-                              addmodal_qty,
-                              "Gudang : " + addproduk_gudangawal,
-                              stokReady,
-                              get_idware,
-                              addprodukharga_jual
-                            );
-                          } else {
-                            addProduk(
-                              addmodal_produk,
-                              addmodal_idproduk,
-                              sizeSelected,
-                              200000,
-                              addmodal_img,
-                              addmodal_qty,
-                              "Gudang : " + addproduk_gudangawal,
-                              stokReady,
-                              addmodal_warehouse,
-                              addprodukharga_jual
-                            );
-                          }
+                          addProduk(
+                            addmodal_produk,
+                            addmodal_idproduk,
+                            sizeSelected,
+                            200000,
+                            addmodal_img,
+                            addmodal_qty,
+                            "Gudang : " + addproduk_gudangawal,
+                            stokReady,
+                            modalWare || cariwaress,
+                            addprodukharga_jual
+                          );
                         }}
                         type="button"
                         disabled={addmodal_submit}
@@ -1784,10 +1852,116 @@ export default function AddOrder() {
             >
               Cancel
             </button>
+
+            {/* Import Excel */}
+            <input
+              ref={importFileRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleImportExcel}
+            />
+            <button
+              type="button"
+              onClick={() => importFileRef.current?.click()}
+              disabled={importLoading}
+              className={`${importLoading ? "bg-gray-200 text-gray-400" : "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-400"
+                } rounded-lg border-2 h-[50px] w-[100%] gap-2 content-center text-sm font-medium`}
+            >
+              {importLoading ? "Mengimpor..." : "📥 Import Excel"}
+            </button>
           </div>
         </div>
 
       </div>
+
+      {/* Import Result Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between px-5 py-4 border-b">
+              <h2 className="text-base font-semibold text-gray-800">Hasil Import Excel</h2>
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="text-gray-400 hover:text-gray-600 text-xl leading-none"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="px-5 py-3 flex gap-4 text-sm text-gray-600 border-b bg-gray-50">
+              <span>
+                ✅ Berhasil:{" "}
+                <strong className="text-green-700">
+                  {importResults.filter((r) => r.status === "berhasil").length}
+                </strong>
+              </span>
+              <span>
+                ❌ Gagal:{" "}
+                <strong className="text-red-600">
+                  {importResults.filter((r) => r.status === "gagal").length}
+                </strong>
+              </span>
+              <span>Total: <strong>{importResults.length}</strong></span>
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 py-3">
+              <table className="w-full text-xs border-collapse">
+                <thead>
+                  <tr className="bg-gray-100 text-gray-600">
+                    <th className="text-left px-2 py-2 border border-gray-200">#</th>
+                    <th className="text-left px-2 py-2 border border-gray-200">ID Pesanan</th>
+                    <th className="text-left px-2 py-2 border border-gray-200">Status</th>
+                    <th className="text-left px-2 py-2 border border-gray-200">Produk / Size</th>
+                    <th className="text-left px-2 py-2 border border-gray-200">Alasan Gagal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {importResults.map((r, i) => (
+                    <tr
+                      key={i}
+                      className={r.status === "berhasil" ? "bg-green-50" : "bg-red-50"}
+                    >
+                      <td className="px-2 py-1.5 border border-gray-200 text-gray-500">{i + 1}</td>
+                      <td className="px-2 py-1.5 border border-gray-200 font-mono">{r.id_pesanan}</td>
+                      <td className="px-2 py-1.5 border border-gray-200">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-xs font-semibold ${r.status === "berhasil"
+                              ? "bg-green-200 text-green-800"
+                              : "bg-red-200 text-red-800"
+                            }`}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 border border-gray-200 text-gray-700">
+                        <span className="block">{r.produk || "-"}</span>
+                        {r.items > 1 && (
+                          <span className="text-xs text-blue-500">{r.items} item</span>
+                        )}
+                      </td>
+                      <td className="px-2 py-1.5 border border-gray-200 text-gray-500 italic">
+                        {r.alasan || "-"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="px-5 py-3 border-t flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowImportModal(false)}
+                className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

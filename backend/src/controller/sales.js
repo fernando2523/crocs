@@ -408,6 +408,16 @@ const updateStatusPacking = async (req, res) => {
     }
 };
 
+const importSalesBulk = async (req, res) => {
+    const data = req.body;
+    try {
+        const result = await Models.importSalesBulk(data);
+        res.json({ result });
+    } catch (error) {
+        res.json({ message: "Server Error", serverMessage: error });
+    }
+};
+
 module.exports = {
     productsSales,
     salesProductbarcode,
@@ -436,4 +446,5 @@ module.exports = {
     getPickingListData,
     updatePickingList,
     updateStatusPacking,
+    importSalesBulk,
 };

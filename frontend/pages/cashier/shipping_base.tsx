@@ -235,9 +235,13 @@ export default function GetBaseorder() {
 
       const storeData = storeResponse.data.result; // Data dari API kedua
 
-      // Gabungkan data berdasarkan kecocokan nama atau ID
+      // Hanya gunakan toko yang punya shopid
+      const storeDataWithShopid = storeData.filter((store: any) => store.shopid !== null && store.shopid !== undefined && store.shopid !== "");
+      console.log("storeDataWithShopid", storeDataWithShopid);
+
+      // Gabungkan data berdasarkan kecocokan nama atau ID — hanya dari toko yang punya shopid
       const mergedData = shopData.map((shop: any) => {
-        const matchingStore = storeData.find(
+        const matchingStore = storeDataWithShopid.find(
           (store: any) => store.ip === shop.name
         );
 
@@ -272,6 +276,9 @@ export default function GetBaseorder() {
       } else {
         filteredData = mergedData.filter((shop: any) => shop.externalIdArea === userBrand);
       }
+
+      // Hanya tampilkan toko yang berhasil match ke storeDataWithShopid (punya shopid)
+      filteredData = filteredData.filter((shop: any) => shop.externalShopId !== null && shop.externalShopId !== undefined);
 
       setgetshopid(filteredData); // Simpan hasil ke state
     } catch (error) {

@@ -7,6 +7,7 @@ const upload = require("../middleware/uploadImage");
 router.post("/products_sales", controller.productsSales);
 router.post("/salesproductbarcode", controller.salesProductbarcode);
 router.post("/inputsales", controller.inputSales);
+router.post("/importorderbulk", controller.importSalesBulk);
 
 //ORDER
 router.post("/order", controller.order);

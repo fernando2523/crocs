@@ -2650,6 +2650,197 @@ const deletependingdata = async () => {
   }
 };
 
+// ─── IMPORT SALES BULK ────────────────────────────────────────────────────────
+const importSalesBulk = async (body) => {
+  const { rows, users, id_users } = body;
+  const effectiveUsers = users || id_users || "system";
+  const tanggal = date.format(new Date(), "YYYY/MM/DD HH:mm:ss");
+  const tanggalOrder = date.format(new Date(), "YYYY-MM-DD");
+
+  const results = [];
+
+  // ── Group rows by id_pesanan (1 pesanan bisa punya banyak item) ──────────
+  const grouped = {};
+  for (const row of rows) {
+    const key = String(row.id_pesanan).trim();
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(row);
+  }
+
+  for (const [id_pesanan, items] of Object.entries(grouped)) {
+    // Ambil id_store dari baris pertama (harus sama semua dalam 1 pesanan)
+    const id_store = String(items[0].id_store).trim();
+    const connection = await dbPool.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      // 1. Cek id_pesanan sudah ada di DB
+      const [cekPesanan] = await connection.query(
+        `SELECT id_pesanan FROM tb_order WHERE id_pesanan=? GROUP BY id_pesanan`,
+        [id_pesanan]
+      );
+      if (cekPesanan.length > 0) {
+        results.push({ id_pesanan, status: 'gagal', alasan: 'ID Pesanan sudah ada di database', items: items.length });
+        await connection.rollback();
+        connection.release();
+        continue;
+      }
+
+      // 2. Cek id_store valid
+      const [storeData] = await connection.query(
+        `SELECT * FROM tb_store WHERE id_store=?`, [id_store]
+      );
+      if (storeData.length === 0) {
+        results.push({ id_pesanan, status: 'gagal', alasan: `id_store '${id_store}' tidak ditemukan`, items: items.length });
+        await connection.rollback();
+        connection.release();
+        continue;
+      }
+
+      // 3. Validasi semua item sebelum mulai insert
+      const validatedItems = [];
+      let validasiGagal = null;
+
+      for (const row of items) {
+        const { id_produk, id_ware, size, qty: qtyRow, total_payment } = row;
+        const qtySalesTotal = Math.max(1, parseInt(qtyRow) || 1);
+
+        const [produkData] = await connection.query(
+          `SELECT * FROM tb_produk WHERE id_produk=? AND id_ware=?`, [id_produk, id_ware]
+        );
+        if (produkData.length === 0) {
+          validasiGagal = `Produk '${id_produk}' tidak ditemukan di warehouse '${id_ware}'`;
+          break;
+        }
+        const p = produkData[0];
+
+        const [wareData] = await connection.query(
+          `SELECT warehouse FROM tb_warehouse WHERE id_ware=?`, [id_ware]
+        );
+        const warehouseName = wareData.length > 0 ? wareData[0].warehouse : id_ware;
+
+        const [variations] = await connection.query(
+          `SELECT * FROM tb_variation WHERE id_produk=? AND id_ware=? AND size=? AND qty > 0 ORDER BY id ASC`,
+          [id_produk, id_ware, size]
+        );
+        if (variations.length === 0) {
+          validasiGagal = `Stok habis: ${id_produk} size ${size} di ${warehouseName}`;
+          break;
+        }
+        const totalStokTersedia = variations.reduce((sum, v) => sum + v.qty, 0);
+        if (totalStokTersedia < qtySalesTotal) {
+          validasiGagal = `Stok tidak cukup: tersedia ${totalStokTersedia}, dibutuhkan ${qtySalesTotal} untuk ${id_produk} size ${size}`;
+          break;
+        }
+
+        const harga_jual = parseInt(p.r_price) - 100000;
+
+        validatedItems.push({ id_produk, id_ware, size, qtySalesTotal, total_payment, p, warehouseName, variations, harga_jual });
+      }
+
+      if (validasiGagal) {
+        results.push({ id_pesanan, status: 'gagal', alasan: validasiGagal, items: items.length });
+        await connection.rollback();
+        connection.release();
+        continue;
+      }
+
+      // 4. Semua item valid — cek total_payment vs total HPP seluruh pesanan
+      // total_payment adalah total keseluruhan pesanan, diambil dari baris pertama
+      const totalInvoice = parseInt(validatedItems[0].total_payment);
+      const totalModal = validatedItems.reduce((sum, item) => {
+        return sum + (Math.round(parseInt(item.p.g_price) - 100000) * item.qtySalesTotal);
+      }, 0);
+      if (totalInvoice < totalModal) {
+        results.push({ id_pesanan, status: 'gagal', alasan: `Total payment (${totalInvoice}) di bawah total HPP (${totalModal})`, items: items.length });
+        await connection.rollback();
+        connection.release();
+        continue;
+      }
+
+      // 5. Mulai insert
+      const [cekMutasi] = await connection.query(`SELECT MAX(id_mutasi) as id_mutasi FROM tb_mutasistock`);
+      let lastMutasi = cekMutasi[0].id_mutasi
+        ? parseInt(cekMutasi[0].id_mutasi.slice(-8))
+        : 0;
+      const produkList = [];
+
+      for (const item of validatedItems) {
+        const { id_produk, id_ware, size, qtySalesTotal, total_payment, p, warehouseName, variations, harga_jual } = item;
+        produkList.push(`${p.produk} (${size} x${qtySalesTotal})`);
+
+        let qtySales = qtySalesTotal;
+        for (const variation of variations) {
+          const qtyBaru = variation.qty - qtySales;
+          const qtyToProcess = qtyBaru >= 0 ? qtySales : variation.qty;
+
+          const [getModal] = await connection.query(
+            `SELECT m_price FROM tb_purchaseorder WHERE idpo=? AND id_produk=?`,
+            [variation.idpo, id_produk]
+          );
+          const m_price = getModal.length > 0 ? getModal[0].m_price : 0;
+          const subtotal = harga_jual * qtyToProcess;
+
+          await connection.query(
+            `INSERT INTO tb_order (tanggal_order, id_pesanan, id_store, id_produk, source, img, produk, id_brand, id_ware, idpo, quality, size, qty, m_price, selling_price, diskon_item, subtotal, users, created_at, updated_at)
+             VALUES (?, ?, ?, ?, 'Barang Gudang', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '0', ?, ?, ?, ?)`,
+            [tanggalOrder, id_pesanan, id_store, id_produk, p.img, p.produk, p.id_brand, id_ware, variation.idpo, p.quality, size, qtyToProcess, m_price, harga_jual, subtotal, effectiveUsers, tanggal, tanggal]
+          );
+
+          lastMutasi += 1;
+          const idMutasi = `MT-${lastMutasi.toString().padStart(8, "0")}`;
+          await connection.query(
+            `INSERT INTO tb_mutasistock (id_mutasi, tanggal, id_pesanan, id_ware, id_store, id_produk, produk, id_po, size, qty, source, id_sup, mutasi, users, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '-', 'SALES ONLINE', ?, ?, ?)`,
+            [idMutasi, tanggalOrder, id_pesanan, id_ware, id_store, id_produk, p.produk, variation.idpo, size, qtyToProcess, `Gudang : ${warehouseName}`, effectiveUsers, tanggal, tanggal]
+          );
+
+          await connection.query(
+            `UPDATE tb_variation SET qty=?, updated_at=? WHERE id_produk=? AND id_ware=? AND size=? AND idpo=?`,
+            [Math.max(0, qtyBaru), tanggal, id_produk, id_ware, size, variation.idpo]
+          );
+
+          qtySales -= qtyToProcess;
+          if (qtySales <= 0) break;
+        }
+      }
+
+      // 5. Insert Invoice — 1x per pesanan, total = jumlah semua total_payment
+      const [cekInvoice] = await connection.query(`SELECT MAX(id_invoice) as id_invoice FROM tb_invoice`);
+      let lastInvoice = cekInvoice[0].id_invoice
+        ? parseInt(cekInvoice[0].id_invoice.slice(-9))
+        : 0;
+      lastInvoice += 1;
+      const idInvoice = `INV-${lastInvoice.toString().padStart(9, "0")}`;
+
+      await connection.query(
+        `INSERT INTO tb_invoice (tanggal_order, id_invoice, id_pesanan, customer, type_customer, sales_channel, amount, diskon_nota, biaya_lainnya, total_amount, selisih, status_pesanan, payment, reseller, users, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, '0', '0', ?, '0', 'SELESAI', 'PAID', '-', ?, ?, ?)`,
+        [tanggalOrder, idInvoice, id_pesanan, id_store, storeData[0].channel, storeData[0].channel, totalInvoice, totalInvoice, effectiveUsers, tanggal, tanggal]
+      );
+
+      await connection.commit();
+      connection.release();
+      results.push({
+        id_pesanan,
+        status: 'berhasil',
+        produk: produkList.join(', '),
+        items: validatedItems.length,
+        total_payment: totalInvoice,
+      });
+
+    } catch (err) {
+      console.error(`importSalesBulk error pesanan ${id_pesanan}:`, err.message);
+      try { await connection.rollback(); } catch (_) {}
+      connection.release();
+      results.push({ id_pesanan, status: 'gagal', alasan: `Error: ${err.message}`, items: items.length });
+    }
+  }
+
+  return results;
+};
+
 module.exports = {
   productsSales,
   salesProductbarcode,
@@ -2678,6 +2869,7 @@ module.exports = {
   getPickingListData,
   updatePickingList,
   updateStatusPacking,
+  importSalesBulk,
 };
 
 // ── Picking List ─────────────────────────────────────────────────────────────

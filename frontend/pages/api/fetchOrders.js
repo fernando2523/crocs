@@ -237,11 +237,18 @@ async function insertOrdersToDatabase(orders) {
                         if (existingIndex > -1) {
                             // Jika externalOrderId sudah ada, gabungkan items
                             vars.items.forEach((item) => {
+                                const rawVar = item.variationName || "";
+                                const hasC = rawVar.includes(",");
                                 dataAwal[existingIndex].items.push({
-                                    variationName: item.variationName,
+                                    variationName: hasC ? rawVar.split(',')[1].trim() : rawVar.trim(),
                                     productImageUrl: item.productImageUrl,
                                     productName: item.productName,
                                     quantity: item.quantity,
+                                    spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
+                                        ? (item.sku ? item.sku.split(".")[0] : null)
+                                        : vars.channelId === "SHOPEE_ID"
+                                            ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
+                                            : null,
                                 });
                             });
 
@@ -267,20 +274,21 @@ async function insertOrdersToDatabase(orders) {
                                 channelId: vars.channelId,
                                 items: vars.items.map((item) => {
                                     // Periksa apakah "variationName" memiliki koma
-                                    const hasComma = item.variationName.includes(",");
+                                    const rawVariation = item.variationName || "";
+                                    const hasComma = rawVariation.includes(",");
 
                                     return {
                                         // variationName: item.variationName,
-                                        variationName: item.variationName.includes(",")
-                                            ? item.variationName.split(',')[1].trim()
-                                            : item.variationName.trim(),
+                                        variationName: hasComma
+                                            ? rawVariation.split(',')[1].trim()
+                                            : rawVariation.trim(),
                                         productImageUrl: item.productImageUrl,
                                         productName: item.productName,
                                         quantity: item.quantity,
                                         spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
                                             ? (item.sku ? item.sku.split(".")[0] : null)
                                             : vars.channelId === "SHOPEE_ID"
-                                                ? (item.spu === "" || item.spu === null ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
+                                                ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
                                                 : null,
                                     };
                                 }),

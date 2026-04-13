@@ -386,6 +386,8 @@ export default function AddOrder() {
 
   const [pilih_warehouse, setpilih_warehouse] = React.useState("close");
   const [datasize, setdatasize] = React.useState([]);
+  const [warehouseList, setWarehouseList] = React.useState<{ id_ware: string; warehouse: string; total_qty: number }[]>([]);
+  const [modalWare, setModalWare] = React.useState("");
   const [display_id_produk, setdisplay_id_produk] = React.useState([]);
   const [display_id_ware, setdisplay_id_ware] = React.useState([]);
   const [display_size, setdisplay_size] = React.useState([]);
@@ -408,17 +410,19 @@ export default function AddOrder() {
     setgetdisplayed(e.target.value);
   }
 
-  async function getStock(e: any, idproduk: any) {
+  async function getStock(idware: any, idproduk: any) {
     setpilih_warehouse("loading");
     setsizeSelected(null);
     setstokReady(0);
     setaddmodal_submit(true);
     setaddmodal_qty(1);
 
-    setaddmodal_warehouse(e)
+    const targetWare = idware || cariwaress;
+    setModalWare(targetWare);
+    setaddmodal_warehouse(targetWare);
     await axios
       .post(`https://api.gudangsandal.com/v1/getsizesales`, {
-        idware: cariwaress,
+        idware: targetWare,
         idproduct: idproduk,
       })
       .then(function (response) {
@@ -427,6 +431,9 @@ export default function AddOrder() {
         setdisplay_id_produk(response.data.result.display_id_produk);
         setdisplay_id_ware(response.data.result.display_id_ware);
         setdisplay_size(response.data.result.display_size);
+        if (response.data.result.warehouse_list) {
+          setWarehouseList(response.data.result.warehouse_list);
+        }
       });
   }
 
@@ -635,7 +642,7 @@ export default function AddOrder() {
       (item) =>
         item.idproduk === idproduk &&
         item.size === size &&
-        item.id_ware === cariwaress
+        item.id_ware === id_ware
     )
     ) {
       const rowsInput = {
@@ -647,8 +654,8 @@ export default function AddOrder() {
         qty_ready: qty_ready,
         qty: qty,
         img: img,
-        source: "Gudang : " + cariwaress_nama,
-        id_ware: cariwaress,
+        source: source,
+        id_ware: id_ware,
         payment: "PAID",
         diskon_item: diskon_item,
         // subtotal: parseInt(harga_jual) * parseInt(qty),
@@ -1092,18 +1099,11 @@ export default function AddOrder() {
     source: any
 
   ) {
-    getStock(get_idware, idproduk);
-
-    if (
-      "SUPER-ADMIN" === Cookies.get("auth_role") ||
-      "HEAD-AREA" === Cookies.get("auth_role")
-    ) {
-    } else {
-      getStock(get_idware, idproduk);
-    }
     const type_customer = getValues("customer");
     const reseller = getValues("reseller");
-    setaddmodal_warehouse("");
+    setaddmodal_warehouse(cariwaress);
+    setWarehouseList([]);
+    setModalWare(cariwaress);
     settypemodal("dbclick");
     if (type_customer === "") {
       alert("Mohon Pilih Tipe Customer");
@@ -1117,13 +1117,8 @@ export default function AddOrder() {
         setpilih_warehouse("close");
         setaddmodal(true);
         setaddmodal_diskon(0);
-        if (type_customer === "Retail") {
-          setaddprodukharga_jual(parseInt(n_price) + parseInt(data_upprice_n_price ? data_upprice_n_price : 0));
-        } else if (type_customer === "Reseller") {
-          setaddprodukharga_jual(parseInt(r_price) + parseInt(data_upprice_r_price ? data_upprice_r_price : 0));
-        } else if (type_customer === "Grosir") {
-          setaddprodukharga_jual(parseInt(g_price) + parseInt(data_upprice_g_price ? data_upprice_g_price : 0));
-        }
+        setaddprodukharga_jual(parseInt(n_price) + parseInt(data_upprice_n_price ? data_upprice_n_price : 0));
+        getStock(cariwaress, idproduk);
       } else {
         if (reseller === "") {
           alert("Mohon Pilih Reseller");
@@ -1137,13 +1132,12 @@ export default function AddOrder() {
           setaddmodal(true);
           setaddmodal_diskon(0);
 
-          if (type_customer === "Retail") {
-            setaddprodukharga_jual(parseInt(n_price) + parseInt(data_upprice_n_price ? data_upprice_n_price : 0));
-          } else if (type_customer === "Reseller") {
+          if (type_customer === "Reseller") {
             setaddprodukharga_jual(parseInt(r_price) + parseInt(data_upprice_r_price ? data_upprice_r_price : 0));
           } else if (type_customer === "Grosir") {
             setaddprodukharga_jual(parseInt(g_price) + parseInt(data_upprice_g_price ? data_upprice_g_price : 0));
           }
+          getStock(cariwaress, idproduk);
         }
       }
     }
@@ -1393,18 +1387,28 @@ export default function AddOrder() {
                               </>
                             ) : (
                               <> */}
-                        <select
-                          // onChange={(e) => getStock(e)}
-                          className="appearance-none h-auto cursor-pointer rounded-lg w-full bg-white py-2 px-5 focus:outline-none border text-sm"
-                          placeholder="Pilih Warehouse"
-                          disabled={true}
-                        >
-                          {/* <option value="">Pilih Warehouse</option> */}
-                          <option value="">{cariwaress_nama}</option>
-                        </select>
-                        <i className="fi fi-rr-angle-small-down w-[1.12rem] h-[1.12rem] text-center text-gray-500 text-[1.12rem] leading-4 absolute mr-5"></i>
-                        {/* </>
-                            )} */}
+                        {/* Warehouse chips — klik untuk ganti gudang */}
+                        {warehouseList.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {warehouseList.map((w) => (
+                              <button
+                                key={w.id_ware}
+                                type="button"
+                                onClick={() => getStock(w.id_ware, addmodal_idproduk)}
+                                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${modalWare === w.id_ware
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white text-blue-500 border-blue-400 hover:bg-blue-50"
+                                  }`}
+                              >
+                                {w.warehouse} <span className="opacity-70">({w.total_qty})</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 py-1 px-2 border rounded-lg">
+                            {cariwaress_nama}
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -1636,18 +1640,28 @@ export default function AddOrder() {
                               </>
                             ) : (
                               <> */}
-                        <select
-                          // onChange={(e) => getStock(e)}
-                          className="appearance-none h-auto cursor-pointer rounded-lg w-full bg-white py-2 px-5 focus:outline-none border text-sm"
-                          placeholder="Pilih Warehouse"
-                          disabled={true}
-                        >
-                          {/* <option value="">Pilih Warehouse</option> */}
-                          <option value="">{cariwaress_nama}</option>
-                        </select>
-                        <i className="fi fi-rr-angle-small-down w-[1.12rem] h-[1.12rem] text-center text-gray-500 text-[1.12rem] leading-4 absolute mr-5"></i>
-                        {/* </>
-                            )} */}
+                        {/* Warehouse chips — klik untuk ganti gudang */}
+                        {warehouseList.length > 0 ? (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {warehouseList.map((w) => (
+                              <button
+                                key={w.id_ware}
+                                type="button"
+                                onClick={() => getStock(w.id_ware, addmodal_idproduk)}
+                                className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${modalWare === w.id_ware
+                                  ? "bg-blue-500 text-white border-blue-500"
+                                  : "bg-white text-blue-500 border-blue-400 hover:bg-blue-50"
+                                  }`}
+                              >
+                                {w.warehouse} <span className="opacity-70">({w.total_qty})</span>
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-500 py-1 px-2 border rounded-lg">
+                            {cariwaress_nama}
+                          </div>
+                        )}
                       </div>
                     </div>
 
