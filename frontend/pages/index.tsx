@@ -77,7 +77,7 @@ export default function Home() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getdashboard`,
+      url: `http://localhost:4000/v1/getdashboard`,
       data: {
         store: store,
         date: date,
@@ -205,7 +205,7 @@ export default function Home() {
 
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getstore_dashboard`,
+      url: `http://localhost:4000/v1/getstore_dashboard`,
       data: {
         role: role,
         store: area,

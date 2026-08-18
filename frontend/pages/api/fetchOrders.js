@@ -228,75 +228,71 @@ async function insertOrdersToDatabase(orders) {
         }
 
         ordersInput.forEach((vars) => {
-            if (Array.isArray(vars.logisticsInfos)) {
-                vars.logisticsInfos.forEach((logisticsInfo) => {
-                    if (Array.isArray(vars.items)) {
-                        // Periksa apakah externalOrderId sudah ada di dataAwal
-                        const existingIndex = dataAwal.findIndex((entry) => entry.externalOrderId === vars.externalOrderId);
+            if (!Array.isArray(vars.items)) return;
 
-                        if (existingIndex > -1) {
-                            // Jika externalOrderId sudah ada, gabungkan items
-                            vars.items.forEach((item) => {
-                                const rawVar = item.variationName || "";
-                                const hasC = rawVar.includes(",");
-                                dataAwal[existingIndex].items.push({
-                                    variationName: hasC ? rawVar.split(',')[1].trim() : rawVar.trim(),
-                                    productImageUrl: item.productImageUrl,
-                                    productName: item.productName,
-                                    quantity: item.quantity,
-                                    spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
-                                        ? (item.sku ? item.sku.split(".")[0] : null)
-                                        : vars.channelId === "SHOPEE_ID"
-                                            ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
-                                            : null,
-                                });
-                            });
+            // Ambil logisticsProviderName dari logisticsInfos jika ada, otherwise null
+            const logisticsProviderName = Array.isArray(vars.logisticsInfos) && vars.logisticsInfos.length > 0
+                ? vars.logisticsInfos[0].logisticsProviderName
+                : null;
 
-                            // Update morethan jika jumlah items lebih dari 1
-                            dataAwal[existingIndex].morethan = "true";
-                        } else {
-                            // Jika externalOrderId belum ada, buat entri baru
-                            dataAwal.push({
-                                orderId: vars.orderId,
-                                externalOrderId: vars.externalOrderId,
-                                externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
-                                shopId: vars.shopId,
-                                totalAmount: vars.channelId === "SHOPEE_ID"
-                                    ? vars.paymentInfo.totalAmount
-                                    : vars.channelId === "TOKOPEDIA_ID"
-                                        ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
-                                        : vars.channelId === "TIKTOK_ID"
-                                            ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
-                                            : 0, // Nilai default jika tidak ada channel yang cocok
+            // Periksa apakah externalOrderId sudah ada di dataAwal
+            const existingIndex = dataAwal.findIndex((entry) => entry.externalOrderId === vars.externalOrderId);
 
-                                logisticsProviderName: logisticsInfo.logisticsProviderName,
-                                externalOrderStatus: vars.externalOrderStatus,
-                                channelId: vars.channelId,
-                                items: vars.items.map((item) => {
-                                    // Periksa apakah "variationName" memiliki koma
-                                    const rawVariation = item.variationName || "";
-                                    const hasComma = rawVariation.includes(",");
+            if (existingIndex > -1) {
+                // Jika externalOrderId sudah ada, gabungkan items
+                vars.items.forEach((item) => {
+                    const rawVar = item.variationName || "";
+                    const hasC = rawVar.includes(",");
+                    dataAwal[existingIndex].items.push({
+                        variationName: hasC ? rawVar.split(',')[1].trim() : rawVar.trim(),
+                        productImageUrl: item.productImageUrl,
+                        productName: item.productName,
+                        quantity: item.quantity,
+                        spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
+                            ? (item.sku ? item.sku.split(".")[0] : null)
+                            : vars.channelId === "SHOPEE_ID"
+                                ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
+                                : null,
+                    });
+                });
 
-                                    return {
-                                        // variationName: item.variationName,
-                                        variationName: hasComma
-                                            ? rawVariation.split(',')[1].trim()
-                                            : rawVariation.trim(),
-                                        productImageUrl: item.productImageUrl,
-                                        productName: item.productName,
-                                        quantity: item.quantity,
-                                        spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
-                                            ? (item.sku ? item.sku.split(".")[0] : null)
-                                            : vars.channelId === "SHOPEE_ID"
-                                                ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
-                                                : null,
-                                    };
-                                }),
-                                morethan: vars.items.length > 1 ? "true" : "false", // Tentukan apakah lebih dari 1 item
-                            });
-                        }
-                    }
-
+                // Update morethan jika jumlah items lebih dari 1
+                dataAwal[existingIndex].morethan = "true";
+            } else {
+                // Jika externalOrderId belum ada, buat entri baru
+                dataAwal.push({
+                    orderId: vars.orderId,
+                    externalOrderId: vars.externalOrderId,
+                    externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
+                    shopId: vars.shopId,
+                    totalAmount: vars.channelId === "SHOPEE_ID"
+                        ? vars.paymentInfo.totalAmount
+                        : vars.channelId === "TOKOPEDIA_ID"
+                            ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
+                            : vars.channelId === "TIKTOK_ID"
+                                ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
+                                : 0,
+                    logisticsProviderName: logisticsProviderName,
+                    externalOrderStatus: vars.externalOrderStatus,
+                    channelId: vars.channelId,
+                    items: vars.items.map((item) => {
+                        const rawVariation = item.variationName || "";
+                        const hasComma = rawVariation.includes(",");
+                        return {
+                            variationName: hasComma
+                                ? rawVariation.split(',')[1].trim()
+                                : rawVariation.trim(),
+                            productImageUrl: item.productImageUrl,
+                            productName: item.productName,
+                            quantity: item.quantity,
+                            spu: vars.channelId === "TIKTOK_ID" || vars.channelId === "TOKOPEDIA_ID"
+                                ? (item.sku ? item.sku.split(".")[0] : null)
+                                : vars.channelId === "SHOPEE_ID"
+                                    ? (!item.spu ? (item.sku ? item.sku.split(".")[0] : null) : item.spu)
+                                    : null,
+                        };
+                    }),
+                    morethan: vars.items.length > 1 ? "true" : "false",
                 });
             }
         });
@@ -328,7 +324,7 @@ async function insertOrdersToDatabase(orders) {
 
         if (result.length > 0) {
             await axios
-                .post(`https://api.gudangsandal.com/v1/cekbeforeordermassal`, {
+                .post(`http://localhost:4000/v1/cekbeforeordermassal`, {
                     result: result,
                 })
                 .then(function (response) {
@@ -414,7 +410,7 @@ async function insertOrdersToDatabase(orders) {
 
                     if (dataQtyReady.length > 0) {
                         axios
-                            .post(`https://api.gudangsandal.com/v1/syncordermassal`, {
+                            .post(`http://localhost:4000/v1/syncordermassal`, {
                                 data: dataQtyReady,
                                 tanggal: tanggal_skrg,
                                 id_store: idstore,

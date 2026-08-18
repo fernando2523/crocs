@@ -123,7 +123,7 @@ export default function StockManagement() {
         }
 
         await axios
-            .post("https://api.gudangsandal.com/v1/stokmin_update", {
+            .post("http://localhost:4000/v1/stokmin_update", {
                 id_notifikasi: selectedRow.id_notifikasi,
                 stok_min: parseInt(newStokMin)
             })
@@ -154,7 +154,7 @@ export default function StockManagement() {
             return;
         } else {
             await axios
-                .post("https://api.gudangsandal.com/v1/updatestatus_stokmarket", {
+                .post("http://localhost:4000/v1/updatestatus_stokmarket", {
                     id_notifikasi: selectedRow?.id_notifikasi,
                     status: newStatus
                 })
@@ -187,7 +187,7 @@ export default function StockManagement() {
         console.log("newStokDefault", newStokDefault);
 
         await axios
-            .post("https://api.gudangsandal.com/v1/stokminimum_update_default", {
+            .post("http://localhost:4000/v1/stokminimum_update_default", {
                 stok_min: parseInt(newStokDefault)
             })
             .then(() => {
@@ -208,7 +208,7 @@ export default function StockManagement() {
     async function loadDataStock() {
         setisLoading(true);
         await axios
-            .get("https://api.gudangsandal.com/v1/getnotifikasi_stok")
+            .get("http://localhost:4000/v1/getnotifikasi_stok")
             .then((res) => {
                 console.log("res.data.result", res.data.result);
                 setDataStock(res.data.result.datas || []);
@@ -679,7 +679,7 @@ export default function StockManagement() {
                                         return;
                                     }
                                     try {
-                                        await axios.post("https://api.gudangsandal.com/v1/massalUpdate_stokAlert", {
+                                        await axios.post("http://localhost:4000/v1/massalUpdate_stokAlert", {
                                             items: selectedRows.map((row) => ({
                                                 id_notifikasi: row.id_notifikasi,
                                                 stok_min: parseInt(massStokMin),
@@ -753,7 +753,7 @@ export default function StockManagement() {
                                         return;
                                     }
                                     try {
-                                        await axios.post("https://api.gudangsandal.com/v1/massalUpdate_status_stokmarket", {
+                                        await axios.post("http://localhost:4000/v1/massalUpdate_status_stokmarket", {
                                             items: selectedRows.map((row) => ({
                                                 id_notifikasi: row.id_notifikasi,
                                                 status: massStatus,

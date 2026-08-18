@@ -9253,21 +9253,17 @@ const deleteitempo = async (body) => {
 
 const getstore_api = async (body) => {
     const connection = await dbPool.getConnection();
-    const tanggal = date.format(new Date(), "YYYY/MM/DD HH:mm:ss");
     try {
-        await connection.beginTransaction();
-
         const [data_store] = await connection.query(
             `SELECT * FROM tb_store ORDER BY id ASC`
         );
 
-        await connection.commit();
-        await connection.release();
-
         return data_store;
     } catch (error) {
         console.log(error);
-        await connection.release();
+        throw error;
+    } finally {
+        connection.release();
     }
 };
 

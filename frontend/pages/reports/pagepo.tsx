@@ -80,7 +80,7 @@ export default function PageSo() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getpo`,
+      url: `http://localhost:4000/v1/getpo`,
       data: {
         query: query,
         date: tanggal,
@@ -109,7 +109,7 @@ export default function PageSo() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getuserpo`,
+      url: `http://localhost:4000/v1/getuserpo`,
       data: {
         user_login: user_login,
         user_role: user_role,
@@ -155,7 +155,7 @@ export default function PageSo() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getsupplier`,
+      url: `http://localhost:4000/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -283,7 +283,7 @@ export default function PageSo() {
 
   async function alldeleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deletepo`, {
+      .post(`http://localhost:4000/v1/deletepo`, {
         id_po: id_po,
       })
       .then(function (response) {
@@ -315,7 +315,7 @@ export default function PageSo() {
 
   async function deleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deleteitempo`, {
+      .post(`http://localhost:4000/v1/deleteitempo`, {
         id_act: id_act,
         users: Name,
       })
@@ -376,7 +376,7 @@ export default function PageSo() {
     unregister("variasirestock");
     setValue("m_price", Rupiah.format(m_price));
     await axios
-      .post(`https://api.gudangsandal.com/v1/get_sizepo`, {
+      .post(`http://localhost:4000/v1/get_sizepo`, {
         id_act: id_act,
       })
       .then(function (response) {
@@ -410,7 +410,7 @@ export default function PageSo() {
       });
     } else {
       await axios
-        .post(`https://api.gudangsandal.com/v1/editpo`, {
+        .post(`http://localhost:4000/v1/editpo`, {
           data: data,
           id_act: id_act,
           idpo: edit_idpo,

@@ -115,7 +115,7 @@ export default function Shipping() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/order`,
+      url: `http://localhost:4000/v1/order`,
       data: {
         status_pesanan: status_pesanan,
         query: query,
@@ -253,7 +253,7 @@ export default function Shipping() {
 
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/syncorder`,
+      url: `http://localhost:4000/v1/syncorder`,
       data: {
         data: data,
       },
@@ -321,7 +321,7 @@ export default function Shipping() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/gudangretur`,
+      url: `http://localhost:4000/v1/gudangretur`,
       data: {
         role: role,
         area: area,
@@ -350,7 +350,7 @@ export default function Shipping() {
   async function getstore(role: any, area: any, Brand: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getstore_sales_online`,
+      url: `http://localhost:4000/v1/getstore_sales_online`,
       data: {
         role: role,
         store: area,
@@ -462,7 +462,7 @@ export default function Shipping() {
     } else {
       setreturLuarBTN(true);
       await axios
-        .post(`https://api.gudangsandal.com/v1/returLuar`, {
+        .post(`http://localhost:4000/v1/returLuar`, {
           LuarProduk: LuarProduk,
           LuarSize: LuarSize,
           LuarOldQty: LuarOldQty,
@@ -583,7 +583,7 @@ export default function Shipping() {
   //   //   setpilih_warehouse("close");
   //   // } else {
   //   await axios
-  //     .post(`https://api.gudangsandal.com/v1/getsizeretur`, {
+  //     .post(`http://localhost:4000/v1/getsizeretur`, {
   //       idware: id_ware,
   //       idproduct: id_produkretur,
   //       size: sizeretur,
@@ -701,7 +701,7 @@ export default function Shipping() {
       // console.log(selisih)
       // console.log(Name)
       await axios
-        .post(`https://api.gudangsandal.com/v1/tukermodel`, {
+        .post(`http://localhost:4000/v1/tukermodel`, {
           idpo_old: returidpo,
           id_produk_old: id_produkretur,
           id_produk_new: TukerModelIDProduk,
@@ -752,7 +752,7 @@ export default function Shipping() {
     //   setpilih_warehouse("close");
     // } else {
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizereturmodel`, {
+      .post(`http://localhost:4000/v1/getsizereturmodel`, {
         idware: id_ware,
         idproduct: id_produk,
         size: sizeretur,
@@ -782,7 +782,7 @@ export default function Shipping() {
     id_ware: any
   ) {
     await axios
-      .post(`https://api.gudangsandal.com/v1/cariwaresretur`, {
+      .post(`http://localhost:4000/v1/cariwaresretur`, {
         id_ware: id_ware,
       })
       .then(function (response) {
@@ -798,7 +798,7 @@ export default function Shipping() {
     setReturware(id_ware);
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizeretur`, {
+      .post(`http://localhost:4000/v1/getsizeretur`, {
         idware: id_ware,
         idproduct: id_produk,
         size: size,
@@ -827,7 +827,7 @@ export default function Shipping() {
   async function sumbitRetur() {
     setIsDisabled(true);
     await axios
-      .post(`https://api.gudangsandal.com/v1/retur`, {
+      .post(`http://localhost:4000/v1/retur`, {
         id_pesanan: Id_pesanan,
         id_produk: id_produkretur,
         produk: produkretur,
@@ -888,7 +888,7 @@ export default function Shipping() {
     setIsDisabled(true);
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/refund`, {
+      .post(`http://localhost:4000/v1/refund`, {
         id_produk: id_produkretur,
         produk: addproduk_produk,
         size: addproduk_size,
@@ -942,7 +942,7 @@ export default function Shipping() {
   async function getsupplier() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getsupplier`,
+      url: `http://localhost:4000/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -1300,7 +1300,7 @@ export default function Shipping() {
 
   async function updatePesanan(status: any) {
     await axios
-      .post(`https://api.gudangsandal.com/v1/updatepesanan`, {
+      .post(`http://localhost:4000/v1/updatepesanan`, {
         id_pesanan: id_pesanan,
         status,
       })
@@ -1321,7 +1321,7 @@ export default function Shipping() {
 
   async function deletePesanan() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deletepesanan`, {
+      .post(`http://localhost:4000/v1/deletepesanan`, {
         id_pesanan: id_pesanan,
         status: tabactive,
         users: Name,
@@ -1341,7 +1341,7 @@ export default function Shipping() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getproduktukarmodel`,
+      url: `http://localhost:4000/v1/getproduktukarmodel`,
       data: {
         query: "all",
         id_ware: "all",
@@ -1367,7 +1367,7 @@ export default function Shipping() {
           <div className="flex gap-2 py-2 items-center">
             <Image
               className="rounded border w-[65px] h-auto p-2"
-              src={`https://api.gudangsandal.com/public/images/${produk.img}`}
+              src={`http://localhost:4000/public/images/${produk.img}`}
               alt="product-1"
               height="500"
               width="500"

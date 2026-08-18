@@ -55,7 +55,7 @@ export default function Expense() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getexpense`,
+      url: `http://localhost:4000/v1/getexpense`,
       data: {
         id_store: id_store,
         date: tanggal,
@@ -78,7 +78,7 @@ export default function Expense() {
   }
   async function getstore(Role: any, area: any) {
     await axios
-      .post(`https://api.gudangsandal.com/v1/getstoreexpense`, {
+      .post(`http://localhost:4000/v1/getstoreexpense`, {
         role: Role,
         area: area,
       })
@@ -222,7 +222,7 @@ export default function Expense() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("https://api.gudangsandal.com/v1/addexpense", data)
+      .post("http://localhost:4000/v1/addexpense", data)
       .then(function (response) {
         loaddataexpense(Store, date, Role, area);
         console.log(response.data);
@@ -261,7 +261,7 @@ export default function Expense() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`https://api.gudangsandal.com/v1/editexpense`, { data, id })
+      .post(`http://localhost:4000/v1/editexpense`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loaddataexpense(Store, date, Role, area);
@@ -284,7 +284,7 @@ export default function Expense() {
 
   async function deleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deleteexpense`, { id })
+      .post(`http://localhost:4000/v1/deleteexpense`, { id })
       .then(function (response) {
         // console.log(response.data);
         loaddataexpense(Store, date, Role, area);

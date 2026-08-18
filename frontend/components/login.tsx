@@ -33,7 +33,7 @@ export default function Login() {
     setProcessLogin(true);
 
     await axios
-      .post("https://api.gudangsandal.com/v1/login", {
+      .post("http://localhost:4000/v1/login", {
         data: data,
       })
       .then(function (response) {
@@ -125,7 +125,7 @@ export default function Login() {
         setProcessLogin(true);
 
         await axios
-          .post("https://api.gudangsandal.com/v1/login_on_enter", {
+          .post("http://localhost:4000/v1/login_on_enter", {
             username: username,
             password: password,
           })

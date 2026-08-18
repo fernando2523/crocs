@@ -16,24 +16,17 @@ const RATE_LIMIT_DELAY = 1000;
 const MAX_PAGINATION_ITERATIONS = 100; // Batas maksimum iterasi pagination
 const REQUEST_DELAY = 1000; // Penundaan antar batch
 
+// === DEBUG: telusuri produk yang tidak ikut sync ===
+// Bisa dioverride via env: DEBUG_SYNC_IDS="1025000118,1025000119"
+const DEBUG_SYNC_IDS = (
+    process.env.DEBUG_SYNC_IDS ||
+    "1025000118,1025000119,1025000120,1025000121,1025000122,1025000123,1025000124,1025000125,1025000126,1025000161"
+).split(",").map(s => s.trim()).filter(Boolean);
+
 
 // Fungsi untuk menunda eksekusi
 function delay(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-// Helper to retry on 429 Too Many Requests
-async function safeRequest(fn, retries = 3) {
-    try {
-        return await fn();
-    } catch (err) {
-        if (err.response?.status === 429 && retries > 0) {
-            const retryAfter = parseInt(err.response.headers['retry-after'] || '1', 10) * 1000;
-            await delay(retryAfter);
-            return safeRequest(fn, retries - 1);
-        }
-        throw err;
-    }
 }
 
 // Helper retry BLOCKING (WAJIB SUCCESS)
@@ -93,6 +86,9 @@ async function proccesSyncInventory() {
         let allProducts = [];
         const seenSpus = new Set();
         let detailSize = [];
+        let gineeTotal = 0;              // total master product yang dilaporkan Ginee
+        let rawSpuList = [];            // semua spu mentah (untuk debug)
+        let rawSkuList = [];           // semua sku variasi mentah (untuk debug)
 
         while (page < MAX_PAGINATION_ITERATIONS) {
             const response = await axios.post(
@@ -107,6 +103,10 @@ async function proccesSyncInventory() {
                 }
             );
             response.data.data.content.forEach(item => {
+                // Kumpulkan data mentah untuk debug
+                if (item.spu) rawSpuList.push(item.spu);
+                (item.variationBriefs || []).forEach(v => { if (v.sku) rawSkuList.push(String(v.sku)); });
+
                 if (item.spu && !seenSpus.has(item.spu)) {
                     seenSpus.add(item.spu);
                     allProducts.push({
@@ -125,12 +125,50 @@ async function proccesSyncInventory() {
             });
 
             const data = response.data.data;
+            if (data && typeof data.total !== "undefined") gineeTotal = data.total;
             if (!data || !data.content || data.content.length === 0) break;
             if ((page + 1) * size >= data.total) break;
 
             page++;
             await delay(REQUEST_DELAY); // Respect rate limit
         }
+
+        // === DEBUG TAHAP 0: ringkasan pagination master product ===
+        console.log(`🐞 [PAGINATION] halaman diambil: ${page + 1} | produk unik terkumpul: ${allProducts.length} | total dilaporkan Ginee: ${gineeTotal} | SKU mentah: ${rawSkuList.length}`);
+        if (gineeTotal > 0 && allProducts.length < gineeTotal) {
+            console.log(`🐞 [PAGINATION] ⚠️  produk terkumpul (${allProducts.length}) < total Ginee (${gineeTotal}) → kemungkinan ada halaman yang belum terambil / dedup spu`);
+        }
+
+        // === DEBUG TAHAP 1: keberadaan produk target di master list Ginee ===
+        console.log("========== 🐞 DEBUG SYNC — MASTER PRODUCT (GINEE) ==========");
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const inRawSku = rawSkuList.filter(sku => sku.includes(dbgId));
+            const inRawSpu = rawSpuList.filter(spu => String(spu).includes(dbgId));
+            if (inRawSku.length === 0 && inRawSpu.length === 0) {
+                console.log(`🐞 [RAW] ${dbgId} ❌ tidak muncul sama sekali di data mentah Ginee (spu maupun sku) → produk BELUM ADA di master product Ginee`);
+            } else {
+                console.log(`🐞 [RAW] ${dbgId} ⚠️  ADA di data mentah tapi tidak terparse → rawSpu=[${inRawSpu.join(', ')}] rawSku=[${inRawSku.join(', ')}] (cek format SKU harus id_produk.size)`);
+            }
+        });
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const inAll = allProducts.filter(p =>
+                p.spu === dbgId || (p.variations || []).some(v => v.id_produk === dbgId)
+            );
+            if (inAll.length === 0) {
+                console.log(`🐞 [MASTER] ${dbgId} ❌ TIDAK ADA di master product list Ginee → produk belum terdaftar / belum di-mapping di Ginee`);
+            } else {
+                inAll.forEach(p => console.log(
+                    `🐞 [MASTER] ${dbgId} ✅ spu=${p.spu} | sizes=[${p.skus.join(',')}] | variations=${JSON.stringify(p.variations)}`
+                ));
+                // Tandai kalau SKU-nya tidak mengandung ".size" (variations kosong)
+                inAll.forEach(p => {
+                    if (!p.variations || p.variations.length === 0) {
+                        console.log(`🐞 [MASTER] ${dbgId} ⚠️  variations KOSONG → format SKU di Ginee kemungkinan tanpa ".size" (harus id_produk.size)`);
+                    }
+                });
+            }
+        });
+        console.log("============================================================");
 
         // Fungsi untuk mengambil data pesanan dengan pagination
         async function fetchOrdersWithPagination() {
@@ -205,7 +243,6 @@ async function proccesSyncInventory() {
                         const items = (response.data.data || []).flatMap(order => order.items);
                         const groupedMap = new Map();
                         items.forEach(item => {
-                            if (!item.sku) return; // skip item yang sku-nya null/undefined
                             const skuParts = item.sku.split(".");
                             const key = `${skuParts[0]}.${skuParts[1]}`;
                             const existing = groupedMap.get(key) || 0;
@@ -418,13 +455,12 @@ async function CompletedStock(result_detail) {
             console.log(`ℹ Tidak ada notifikasi baru yang perlu ditambahkan`);
         }
 
-        const [updateStatusResult] = await connection.query(
-            `UPDATE tb_notifikasi
-           SET status = 'ALL_MARKETPLACE'
-           WHERE qty > stok_min
-             AND status <> 'ALL_MARKETPLACE'`
-        );
-        console.log(`✅ Updated status for ${updateStatusResult.affectedRows} records where qty > stok_min`);
+        // ⚠️ Dulu ada auto-reset "status = ALL_MARKETPLACE WHERE qty > stok_min" di sini.
+        // Dihapus: `status` adalah assignment channel manual (SHOPEE/TIKTOK/ALL_MARKETPLACE)
+        // yang di-set admin di halaman Stock Management, BUKAN flag notifikasi terbaca/resolved
+        // (itu tugas kolom `status_baca`). Auto-reset ini diam-diam menghapus assignment channel
+        // manual begitu stok naik di atas minimum, sehingga sync stok Shopee/TikTok jadi tidak
+        // akurat lagi setelah restock.
 
     } catch (error) {
         console.error("Error in CompletedStock:", error);
@@ -441,10 +477,15 @@ async function CompletedStock(result_detail) {
 }
 
 async function matchProduct(allProducts, result_detail) {
+    // ⚠️ Dulu ada watchdog di sini yang `process.exit(1)` kalau matchProduct macet >10 menit.
+    // Dihapus: cron.js SUDAH punya watchdog 10 menit sendiri yang membungkus seluruh
+    // proccesSyncInventory() (termasuk matchProduct). Dua watchdog process.exit yang independen
+    // race satu sama lain dan mematikan SELURUH proses node cron.js tanpa auto-restart
+    // (dijalankan bare "node cron.js", tanpa pm2/systemd) — begitu ke-trigger, sync stok
+    // berhenti total & diam sampai direstart manual. Cukup satu watchdog otoritatif di cron.js.
     const TIMEOUT_LIMIT = 10 * 60 * 1000;
     const watchdog = setTimeout(() => {
-        console.error("⏰ Timeout: matchProduct stuck lebih dari 10 menit, exit paksa.");
-        process.exit(1);
+        console.warn("⏰ matchProduct masih berjalan setelah 10 menit (belum di-exit, hanya info).");
     }, TIMEOUT_LIMIT);
     var tokenWare = await getToken2("POST", "/openapi/warehouse/v1/search", ACCESS_KEY, SECRET_KEY)
     var tokenWare_getlockedstok = await getToken2("POST", "/openapi/warehouse-inventory/v1/sku/list", ACCESS_KEY, SECRET_KEY)
@@ -452,7 +493,6 @@ async function matchProduct(allProducts, result_detail) {
     var tokenAutoInsert = await getToken2("POST", "/openapi/warehouse-inventory/v1/product/stock/update", ACCESS_KEY, SECRET_KEY)
     var tokenpromo = await getToken2("POST", "/openapi/warehouse-inventory/v1/sku/list", ACCESS_KEY, SECRET_KEY)
     let connection;
-    const getSize = [];
 
     try {
         connection = await db.getConnection();
@@ -488,6 +528,8 @@ async function matchProduct(allProducts, result_detail) {
                 ? [...new Set(product.variations.map(v => v.id_produk).filter(Boolean))]
                 : [product.spu];
 
+            console.log(`🔍 SPU: ${product.spu} → varIds DB: [${varIds.join(', ')}]`);
+
             for (const varId of varIds) {
                 const [cekProductLocal] = await connection.query(
                     `SELECT
@@ -515,6 +557,18 @@ async function matchProduct(allProducts, result_detail) {
         }
         console.log("allCekProductLocal", allCekProductLocal);
 
+        // === DEBUG TAHAP 2: hasil query DB lokal (tb_produk/tb_variation) ===
+        console.log("========== 🐞 DEBUG SYNC — DB LOKAL ==========");
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const rows = allCekProductLocal.filter(r => String(r.id_produk) === dbgId);
+            if (rows.length === 0) {
+                console.log(`🐞 [DB LOKAL] ${dbgId} ❌ 0 baris → tidak ada di tb_produk/tb_variation (selain WARE-0003) atau id_produk beda`);
+            } else {
+                console.log(`🐞 [DB LOKAL] ${dbgId} ✅ ${rows.length} baris → ${rows.map(r => `${r.size}:${r.qty}`).join(', ')}`);
+            }
+        });
+        console.log("==============================================");
+
         // Kurangi qty pada allCekProductLocal berdasarkan result_detail
         result_detail.forEach(({ sku, size, qty }) => {
             const item = allCekProductLocal.find(p => p.id_produk === sku && p.size === size);
@@ -537,9 +591,9 @@ async function matchProduct(allProducts, result_detail) {
                   produk,
                   size,
                   qty,
-                 CASE 
+                 CASE
                     WHEN status = 'SHOPEE' AND id_ware = 'WARE-0002' THEN 'WARE-0003'
-                    WHEN status = 'TIKTOK' AND id_ware = 'WARE-0002' THEN 'WARE-0003'
+                    WHEN status = 'TIKTOK' AND id_ware = 'WARE-0001' THEN 'WARE-0003'
                     WHEN status = 'SHOPEE' THEN 'WARE-0001'
                     WHEN status = 'TIKTOK' THEN 'WARE-0002'
                     ELSE status
@@ -567,7 +621,17 @@ async function matchProduct(allProducts, result_detail) {
             });
         });
 
-        const hasilSplit = (allCekProductLocal.find(item => item.ip)?.ip || "").split(" ");
+        // === DEBUG TAHAP 3: apakah lolos filteredCekProductLocal (match variations/skus Ginee) ===
+        console.log("========== 🐞 DEBUG SYNC — FILTER MATCH GINEE ==========");
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const rows = filteredCekProductLocal.filter(r => String(r.id_produk) === dbgId);
+            if (rows.length === 0) {
+                console.log(`🐞 [FILTER] ${dbgId} ❌ TERBUANG → id_produk.size lokal tidak cocok dengan variations/skus dari Ginee`);
+            } else {
+                console.log(`🐞 [FILTER] ${dbgId} ✅ lolos → ${rows.map(r => r.size).join(', ')}`);
+            }
+        });
+        console.log("=======================================================");
 
         const warehouseResponse = await axios({
             method: "POST",
@@ -584,17 +648,19 @@ async function matchProduct(allProducts, result_detail) {
         });
 
         const warehouseData = warehouseResponse.data.data.content;
-        warehouseData.forEach(element => {
-            element.name.toLowerCase().includes(hasilSplit[0].toLowerCase())
-        });
 
-        if (warehouseData && warehouseData.length > 0) {
-            const warehouseListMapped = warehouseData.map((item) => ({
-                id: item.id,
-                code: item.code,
-            }));
-            warehouseList = warehouseListMapped;
+        // `warehouseList` sebelumnya tidak dideklarasikan (implicit global) — kalau fetch ini
+        // gagal/kosong di satu cycle, kode lama diam-diam lanjut pakai sisa data dari cycle
+        // sebelumnya (atau undefined kalau ini run pertama). Sekarang: scoped ke fungsi ini,
+        // dan kalau kosong langsung throw supaya cycle ini gagal terlihat di log & di-retry
+        // otomatis oleh cron 3 menit lagi — bukan diam-diam pakai data basi/kosong.
+        if (!warehouseData || warehouseData.length === 0) {
+            throw new Error("warehouse/v1/search mengembalikan data kosong — batalkan sync cycle ini");
         }
+        const warehouseList = warehouseData.map((item) => ({
+            id: item.id,
+            code: item.code,
+        }));
         // console.log("warehouseList", warehouseList);
 
         // Aggregate result_detail by sku and size
@@ -722,9 +788,12 @@ async function matchProduct(allProducts, result_detail) {
                 } else if (matchedParting.some(p => p.status === 'ALL_MARKETPLACE')) {
                     // Fallback for all-marketplace status
                     quantity = parseInt(element.qty);
+                } else if (matchedParting.length === 0) {
+                    // Produk baru tanpa partitioning rule → perlakukan sebagai ALL_MARKETPLACE
+                    quantity = parseInt(element.qty);
                 } else {
-                    // Tidak ada entri di tb_notifikasi → pakai stok lokal langsung
-                    quantity = parseInt(element.qty) || 0;
+                    // Ada partitioning rule tapi bukan untuk warehouse ini
+                    quantity = 0;
                 }
 
                 stockMap[warehouse.id].stockList.push({
@@ -810,29 +879,39 @@ async function matchProduct(allProducts, result_detail) {
                 .filter(Boolean)
         );
 
+        // === DEBUG TAHAP 4: apakah produk ada di warehouse-inventory Ginee (validMasterSkuSet) ===
+        // Ini gate terakhir: SKU yang TIDAK ada di sini akan ter-filter dan TIDAK di-sync.
+        console.log("========== 🐞 DEBUG SYNC — GINEE WAREHOUSE INVENTORY ==========");
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const valid = [...validMasterSkuSet].filter(sku => String(sku).startsWith(dbgId + "."));
+            if (valid.length === 0) {
+                console.log(`🐞 [GINEE INV] ${dbgId} ❌ TIDAK ADA di warehouse-inventory Ginee → akan ter-filter, TIDAK di-sync (produk belum di-bind ke warehouse di Ginee)`);
+            } else {
+                console.log(`🐞 [GINEE INV] ${dbgId} ✅ ada: [${valid.join(', ')}]`);
+            }
+        });
+        console.log("==============================================================");
+
         const groupedStockList_Warehouse_final = Object.values(stockMap);
         // console.log("groupedStockList_Warehouse_final", JSON.stringify({ groupedStockList_Warehouse_final }, null, 2));
 
-        // Build aggregated promo by base masterSku (sku.size) across all warehouses
-        const totalPromoByBaseSku = allInventory.reduce((acc, ai) => {
-            // ai.masterSku looks like "1024000011.32.WARE-0001"
-            const parts = (ai.masterSku || '').split('.');
-            const base = parts.length >= 2 ? `${parts[0]}.${parts[1]}` : ai.masterSku;
-            const promo = ai.promotionStock ?? 0;
-            acc[base] = (acc[base] || 0) + promo;
+        // Map promotionStock per masterSku PENUH (sudah termasuk kode warehouse/channel,
+        // mis. "1024000011.32.WARE-0001" untuk Shopee, "1024000011.32.WARE-0002" untuk TikTok).
+        // allInventory diambil per-warehouseId dari Ginee, jadi promotionStock di sini SUDAH
+        // scoped ke channel masing-masing — TIDAK boleh dijumlah lintas warehouse, karena
+        // promo yang jalan di 1 channel tidak boleh ikut memotong stok channel lain.
+        const promoByFullSku = allInventory.reduce((acc, ai) => {
+            if (ai.masterSku) acc[ai.masterSku] = ai.promotionStock ?? 0;
             return acc;
         }, {});
 
-        // Adjust grouped final stock by subtracting the aggregated promotionStock (both warehouses) per baseSku
+        // Adjust grouped final stock by subtracting HANYA promotionStock milik masterSku (warehouse) itu sendiri
         const adjustedGroupedStock = groupedStockList_Warehouse_final.map(entry => {
             const adjustedList = entry.stockList.map(item => {
-                // item.masterSku looks like "1024000011.32.WARE-0002"
-                const parts = (item.masterSku || '').split('.');
-                const base = parts.length >= 2 ? `${parts[0]}.${parts[1]}` : item.masterSku;
-                const promoAllWarehouses = totalPromoByBaseSku[base] || 0;
+                const promo = promoByFullSku[item.masterSku] || 0;
                 return {
                     ...item,
-                    quantity: Math.max(0, item.quantity - promoAllWarehouses)
+                    quantity: Math.max(0, item.quantity - promo)
                 };
             });
             return {
@@ -998,6 +1077,20 @@ async function matchProduct(allProducts, result_detail) {
 
             console.log(`\n✅ SELESAI warehouse: ${entry.warehouseId} (${total} SKU diproses)\n`);
         }
+        // === DEBUG TAHAP 5: payload akhir yang benar-benar akan di-sync ke Ginee ===
+        console.log("========== 🐞 DEBUG SYNC — PAYLOAD AKHIR (yang di-sync) ==========");
+        DEBUG_SYNC_IDS.forEach(dbgId => {
+            const found = adjustedGroupedStock_Available
+                .flatMap(e => e.stockList)
+                .filter(s => String(s.masterSku).startsWith(dbgId + "."));
+            if (found.length === 0) {
+                console.log(`🐞 [FINAL] ${dbgId} ❌ TIDAK ikut di-sync (0 SKU di payload akhir)`);
+            } else {
+                console.log(`🐞 [FINAL] ${dbgId} ✅ di-sync: ${found.map(s => `${s.masterSku}=${s.quantity}`).join(', ')}`);
+            }
+        });
+        console.log("================================================================");
+
         // ===============================
         // RUN AVAILABLE STOCK (SEMI PARALEL)
         // ===============================

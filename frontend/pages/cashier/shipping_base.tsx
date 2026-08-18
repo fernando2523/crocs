@@ -82,6 +82,18 @@ import { saveAs } from "file-saver";
 import ExcelJS from "exceljs";
 import { ThreeDots } from "react-loader-spinner"; // Import animasi spinner
 
+// Pilih SKU yang membawa kode warehouse (3 bagian: id_produk.size.id_ware).
+// Utamakan channel `sku` (field yang ditampilkan di UI [SKU:...] dan terbukti
+// benar untuk TikTok). masterSku dijadikan fallback karena isinya bisa berbeda
+// warehouse / hanya 2 bagian. Pilih yang punya >= 3 bagian.
+function pickSku(masterSku: any, sku: any) {
+  const s = sku || "";
+  const m = masterSku || "";
+  if (s.split(".").length >= 3) return s;
+  if (m.split(".").length >= 3) return m;
+  return s || m;
+}
+
 export default function GetBaseorder() {
   const [isLoading, setisLoading]: any = useState(true);
   const [data_order, setsycnorder]: any = useState([]);
@@ -190,7 +202,7 @@ export default function GetBaseorder() {
   async function getstore() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getstore_api`,
+      url: `http://localhost:4000/v1/getstore_api`,
     })
       .then(function (response) {
         setdatastore(response.data.result);
@@ -203,7 +215,7 @@ export default function GetBaseorder() {
   async function getpending() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getpendingapi`,
+      url: `http://localhost:4000/v1/getpendingapi`,
     })
       .then(function (response) {
         setdatapending(response.data.result.get_pending);
@@ -230,7 +242,7 @@ export default function GetBaseorder() {
 
       const storeResponse = await axios({
         method: "get",
-        url: `https://api.gudangsandal.com/v1/getstore_api`,
+        url: `http://localhost:4000/v1/getstore_api`,
       });
 
       const storeData = storeResponse.data.result; // Data dari API kedua
@@ -289,7 +301,7 @@ export default function GetBaseorder() {
   async function getbrand(role: any, area: any, Brand: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getstore_sales_online`,
+      url: `http://localhost:4000/v1/getstore_sales_online`,
       data: {
         role: role,
         store: area,
@@ -366,7 +378,7 @@ export default function GetBaseorder() {
 
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/get_history_massal`,
+      url: `http://localhost:4000/v1/get_history_massal`,
     })
       .then(function (response) {
         console.log("Response:", response.data.result);
@@ -517,14 +529,12 @@ export default function GetBaseorder() {
           // Jika order sudah ada, tambahkan items baru (misal jika ada update)
           vars.items.forEach((item: any) => {
             dataAwal[existingIndex].items.push({
-              variationName: item.variationName.includes(",")
-                ? item.variationName.split(",")[1].trim()
-                : item.variationName.trim(),
+              variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
               productImageUrl: item.productImageUrl,
               productName: item.productName,
               quantity: item.quantity,
-              sku: item.masterSku || item.sku,
-              spu: (item.masterSku || item.sku || "").split(".")[0],
+              sku: pickSku(item.masterSku, item.sku),
+              spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
             });
           });
           // Update flag morethan jika jumlah items > 1
@@ -548,7 +558,7 @@ export default function GetBaseorder() {
             shopId: vars.shopId,
             totalAmount:
               vars.channelId === "SHOPEE_ID"
-                ? vars.paymentInfo.totalAmount
+                ? vars.totalAmount
                 : vars.channelId === "TOKOPEDIA_ID"
                   ? parseInt(vars.paymentInfo.subTotal) -
                   parseInt(vars.paymentInfo.subTotal) * 0.12
@@ -563,14 +573,12 @@ export default function GetBaseorder() {
             externalOrderStatus: vars.externalOrderStatus,
             channelId: vars.channelId,
             items: vars.items.map((item: any) => ({
-              variationName: item.variationName.includes(",")
-                ? item.variationName.split(",")[1].trim()
-                : item.variationName.trim(),
+              variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
               productImageUrl: item.productImageUrl,
               productName: item.productName,
               quantity: item.quantity,
-              sku: item.masterSku || item.sku,
-              spu: (item.masterSku || item.sku || "").split(".")[0],
+              sku: pickSku(item.masterSku, item.sku),
+              spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
             })),
             morethan: vars.items.length > 1 ? "true" : "false",
           });
@@ -615,70 +623,70 @@ export default function GetBaseorder() {
     console.log("data satuan", dataArray);
 
     dataArray.forEach((vars: any) => {
-      if (Array.isArray(vars.logisticsInfos)) {
-        vars.logisticsInfos.forEach((logisticsInfo: any) => {
-          if (Array.isArray(vars.items)) {
-            // Periksa apakah externalOrderId sudah ada di dataAwal
-            const existingIndex = dataAwal.findIndex((entry: any) => entry.externalOrderId === vars.externalOrderId);
+      if (!Array.isArray(vars.items)) {
+        channelSet.add(vars.channelId);
+        return;
+      }
 
-            if (existingIndex > -1) {
-              // Jika externalOrderId sudah ada, gabungkan items
-              vars.items.forEach((item: any) => {
-                dataAwal[existingIndex].items.push({
-                  variationName: item.variationName,
-                  productImageUrl: item.productImageUrl,
-                  productName: item.productName,
-                  quantity: item.quantity,
-                });
-              });
+      const logisticsProviderName = Array.isArray(vars.logisticsInfos) && vars.logisticsInfos.length > 0
+        ? vars.logisticsInfos[0].logisticsProviderName
+        : null;
+      const logisticsTrackingNumber = Array.isArray(vars.logisticsInfos) && vars.logisticsInfos.length > 0
+        ? vars.logisticsInfos[0].logisticsTrackingNumber
+        : null;
 
-              // Update morethan jika jumlah items lebih dari 1
-              dataAwal[existingIndex].morethan = "true";
-            } else {
-              // Jika externalOrderId belum ada, buat entri baru
-              list_getshopid.forEach((shops: any) => {
-                if (shops.shopId === vars.shopId) {
-                  dataAwal.push({
-                    orderId: vars.orderId,
-                    externalOrderId: vars.channelId != "TOKOPEDIA_ID"
-                      ? vars.externalOrderId : vars.externalOrderSn.includes("/") ? vars.externalOrderSn.split('/')[3] : vars.externalOrderSn,
-                    externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
-                    shopId: vars.shopId,
-                    totalAmount: vars.channelId === "SHOPEE_ID"
-                      ? vars.paymentInfo.totalAmount
-                      : vars.channelId === "TOKOPEDIA_ID"
-                        ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
-                        : vars.channelId === "TIKTOK_ID"
-                          ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
-                          : 0, // Nilai default jika tidak ada channel yang cocok
-                    channel: vars.channel,
-                    shopName: shops.name,
+      const existingIndex = dataAwal.findIndex((entry: any) => entry.externalOrderId === vars.externalOrderId);
 
-                    logisticsProviderName: logisticsInfo.logisticsProviderName,
-                    externalOrderStatus: vars.externalOrderStatus,
-                    logisticsTrackingNumber: logisticsInfo.logisticsTrackingNumber,
-                    channelId: vars.channelId,
-                    items: vars.items.map((item: any) => ({
-                      variationName: item.variationName.includes(",")
-                        ? item.variationName.split(',')[1].trim()
-                        : item.variationName.trim(),
-                      productImageUrl: item.productImageUrl,
-                      productName: item.productName,
-                      quantity: item.quantity,
-                      sku: item.masterSku || item.sku,
-                      spu: (item.masterSku || item.sku || "").split(".")[0],
-                    })),
-                    morethan: vars.items.length > 1 ? "true" : "false", // Tentukan apakah lebih dari 1 item
-                  });
-                }
-              });
-            }
+      if (existingIndex > -1) {
+        vars.items.forEach((item: any) => {
+          dataAwal[existingIndex].items.push({
+            variationName: item.variationName,
+            productImageUrl: item.productImageUrl,
+            productName: item.productName,
+            quantity: item.quantity,
+          });
+        });
+        dataAwal[existingIndex].morethan = "true";
+      } else {
+        let shopName = "";
+        list_getshopid.forEach((shops: any) => {
+          if (shops.shopId === vars.shopId) {
+            shopName = shops.name;
           }
-
+        });
+        dataAwal.push({
+          orderId: vars.orderId,
+          externalOrderId: vars.channelId !== "TOKOPEDIA_ID"
+            ? vars.externalOrderId
+            : vars.externalOrderSn.includes("/") ? vars.externalOrderSn.split('/')[3] : vars.externalOrderSn,
+          externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
+          shopId: vars.shopId,
+          totalAmount: vars.channelId === "SHOPEE_ID"
+            ? vars.totalAmount
+            : vars.channelId === "TOKOPEDIA_ID"
+              ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
+              : vars.channelId === "TIKTOK_ID"
+                ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
+                : 0,
+          channel: vars.channel,
+          shopName: shopName,
+          logisticsProviderName: logisticsProviderName,
+          logisticsTrackingNumber: logisticsTrackingNumber,
+          externalOrderStatus: vars.externalOrderStatus,
+          channelId: vars.channelId,
+          items: vars.items.map((item: any) => ({
+            variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
+            productImageUrl: item.productImageUrl,
+            productName: item.productName,
+            quantity: item.quantity,
+            sku: pickSku(item.masterSku, item.sku),
+            spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
+          })),
+          morethan: vars.items.length > 1 ? "true" : "false",
         });
       }
-      channelSet.add(vars.channelId); // Add channelId to the Set
 
+      channelSet.add(vars.channelId);
     });
 
     const channel = Array.from(channelSet);
@@ -736,14 +744,12 @@ export default function GetBaseorder() {
           // Order sudah ada: tambahkan item baru ke properti items
           vars.items.forEach((item: any) => {
             dataAwal[existingIndex].items.push({
-              variationName: item.variationName.includes(",")
-                ? item.variationName.split(",")[1].trim()
-                : item.variationName.trim(),
+              variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
               productImageUrl: item.productImageUrl,
               productName: item.productName,
               quantity: item.quantity,
-              sku: item.masterSku || item.sku,
-              spu: (item.masterSku || item.sku || "").split(".")[0],
+              sku: pickSku(item.masterSku, item.sku),
+              spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
             });
           });
 
@@ -768,7 +774,7 @@ export default function GetBaseorder() {
             shopId: vars.shopId,
             totalAmount:
               vars.channelId === "SHOPEE_ID"
-                ? vars.paymentInfo.totalAmount
+                ? vars.totalAmount
                 : vars.channelId === "TOKOPEDIA_ID"
                   ? parseInt(vars.paymentInfo.subTotal) -
                   parseInt(vars.paymentInfo.subTotal) * 0.12
@@ -785,14 +791,12 @@ export default function GetBaseorder() {
 
             // Tambahkan items satu kali saja
             items: vars.items.map((item: any) => ({
-              variationName: item.variationName.includes(",")
-                ? item.variationName.split(",")[1].trim()
-                : item.variationName.trim(),
+              variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
               productImageUrl: item.productImageUrl,
               productName: item.productName,
               quantity: item.quantity,
-              sku: item.masterSku || item.sku,
-              spu: (item.masterSku || item.sku || "").split(".")[0],
+              sku: pickSku(item.masterSku, item.sku),
+              spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
             })),
 
             morethan: vars.items.length > 1 ? "true" : "false",
@@ -1079,17 +1083,22 @@ export default function GetBaseorder() {
       });
     }, 1000);
 
-    await axios({
-      method: "POST",
-      url: "/api/getparametershippingmassal",
-      data: {
-        request_uri: "/openapi/logistics/v1/get-shipping-parameter",
-        params: {
-          orderId: queryawal,
+    await Promise.all([
+      axios({
+        method: "POST",
+        url: "/api/getparametershippingmassal",
+        data: {
+          request_uri: "/openapi/logistics/v1/get-shipping-parameter",
+          params: {
+            orderId: queryawal,
+          },
         },
-      },
-    })
-      .then(function (response) {
+      }),
+      // Ambil totalAmount FINAL dari Ginee supaya tabel & Export Excel di modal
+      // cetak label (satuan & massal) tidak pakai nilai lama/belum final.
+      syncFinalTotalAmount(datas),
+    ])
+      .then(function ([response, correctedAmounts]) {
         // Hentikan interval dan tutup toast setelah selesai
         clearInterval(interval);
         toast.dismiss(toastId);
@@ -1102,7 +1111,7 @@ export default function GetBaseorder() {
         const filteredData: any = response.data[0].logistics.filter(
           (item: any) => item.logisticDetailList.length > 0
         );
-        setaddresses(response.data[0].addresses);
+        setaddresses(response.data[0].addresses || []);
         setproviderName(providerName);
         setlogistics(filteredData);
         setkurir(
@@ -1110,7 +1119,11 @@ export default function GetBaseorder() {
         );
         setdeliveryType(filteredData[0]["logisticsDeliveryType"]);
 
-        setquerymassal(datas);
+        const datasFinal = datas.map((order: any) => ({
+          ...order,
+          totalAmount: correctedAmounts[order.orderId] ?? order.totalAmount,
+        }));
+        setquerymassal(datasFinal);
         setmodalaturpengiriman_massal_printaja(true);
       })
 
@@ -1180,7 +1193,7 @@ export default function GetBaseorder() {
         (item: any) => item.logisticDetailList.length > 0
       );
       setquerymassal(datas);
-      setaddresses(response.data[0].addresses);
+      setaddresses(response.data[0].addresses || []);
 
       setlogistics(filteredData);
       setkurir(
@@ -1288,59 +1301,51 @@ export default function GetBaseorder() {
     let dataAwal: any = [];
 
     queryawal.forEach((vars: any) => {
-      if (Array.isArray(vars.logisticsInfos)) {
-        vars.logisticsInfos.forEach((logisticsInfo: any) => {
-          if (Array.isArray(vars.items)) {
-            // Periksa apakah externalOrderId sudah ada di dataAwal
-            const existingIndex = dataAwal.findIndex((entry: any) => entry.externalOrderId === vars.externalOrderId);
+      if (!Array.isArray(vars.items)) return;
 
-            if (existingIndex > -1) {
-              // Jika externalOrderId sudah ada, gabungkan items
-              vars.items.forEach((item: any) => {
-                dataAwal[existingIndex].items.push({
-                  variationName: item.variationName,
-                  productImageUrl: item.productImageUrl,
-                  productName: item.productName,
-                  quantity: item.quantity,
-                });
-              });
+      const logisticsProviderName = Array.isArray(vars.logisticsInfos) && vars.logisticsInfos.length > 0
+        ? vars.logisticsInfos[0].logisticsProviderName
+        : null;
 
-              // Update morethan jika jumlah items lebih dari 1
-              dataAwal[existingIndex].morethan = "true";
-            } else {
-              // Jika externalOrderId belum ada, buat entri baru
-              dataAwal.push({
-                orderId: vars.orderId,
-                externalOrderId: vars.channelId != "TOKOPEDIA_ID"
-                  ? vars.externalOrderId : vars.externalOrderSn.includes("/") ? vars.externalOrderSn.split('/')[3] : vars.externalOrderSn,
-                externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
-                shopId: vars.shopId,
-                totalAmount: vars.channelId === "SHOPEE_ID"
-                  ? vars.paymentInfo.totalAmount
-                  : vars.channelId === "TOKOPEDIA_ID"
-                    ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
-                    : vars.channelId === "TIKTOK_ID"
-                      ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
-                      : 0, // Nilai default jika tidak ada channel yang cocok
+      const existingIndex = dataAwal.findIndex((entry: any) => entry.externalOrderId === vars.externalOrderId);
 
-                logisticsProviderName: logisticsInfo.logisticsProviderName,
-                externalOrderStatus: vars.externalOrderStatus,
-                channelId: vars.channelId,
-                items: vars.items.map((item: any) => ({
-                  variationName: item.variationName.includes(",")
-                    ? item.variationName.split(',')[1].trim()
-                    : item.variationName.trim(),
-                  productImageUrl: item.productImageUrl,
-                  productName: item.productName,
-                  quantity: item.quantity,
-                  sku: item.masterSku || item.sku,
-                  spu: (item.masterSku || item.sku || "").split(".")[0],
-                })),
-                morethan: vars.items.length > 1 ? "true" : "false", // Tentukan apakah lebih dari 1 item
-              });
-            }
-          }
-
+      if (existingIndex > -1) {
+        vars.items.forEach((item: any) => {
+          dataAwal[existingIndex].items.push({
+            variationName: item.variationName,
+            productImageUrl: item.productImageUrl,
+            productName: item.productName,
+            quantity: item.quantity,
+          });
+        });
+        dataAwal[existingIndex].morethan = "true";
+      } else {
+        dataAwal.push({
+          orderId: vars.orderId,
+          externalOrderId: vars.channelId !== "TOKOPEDIA_ID"
+            ? vars.externalOrderId
+            : vars.externalOrderSn.includes("/") ? vars.externalOrderSn.split('/')[3] : vars.externalOrderSn,
+          externalCreateAt: formatISO(parseISO(vars.externalCreateAt), { representation: "date" }),
+          shopId: vars.shopId,
+          totalAmount: vars.channelId === "SHOPEE_ID"
+            ? vars.totalAmount
+            : vars.channelId === "TOKOPEDIA_ID"
+              ? parseInt(vars.paymentInfo.subTotal) - (parseInt(vars.paymentInfo.subTotal) * 0.12)
+              : vars.channelId === "TIKTOK_ID"
+                ? parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.175) - (parseInt(vars.paymentInfo.subTotal + vars.paymentInfo.voucherPlatform) * 0.03)
+                : 0,
+          logisticsProviderName: logisticsProviderName,
+          externalOrderStatus: vars.externalOrderStatus,
+          channelId: vars.channelId,
+          items: vars.items.map((item: any) => ({
+            variationName: (() => { const v = item.variationName || ""; return v.includes(",") ? v.split(",")[1].trim() : v.trim(); })(),
+            productImageUrl: item.productImageUrl,
+            productName: item.productName,
+            quantity: item.quantity,
+            sku: pickSku(item.masterSku, item.sku),
+            spu: (pickSku(item.masterSku, item.sku) || "").split(".")[0],
+          })),
+          morethan: vars.items.length > 1 ? "true" : "false",
         });
       }
     });
@@ -1395,7 +1400,7 @@ export default function GetBaseorder() {
         console.log("get shipping =", response.data);
 
         setmodalaturpengiriman(true);
-        setaddresses(response.data.data.addresses);
+        setaddresses(response.data.data.addresses || []);
         const filteredData: any = response.data.data.logistics.filter(
           (item: any) => item.logisticDetailList.length > 0
         );
@@ -1462,6 +1467,144 @@ export default function GetBaseorder() {
       });
   }
 
+  // 🔄 Ambil totalAmount FINAL dari Ginee setelah order di-ship, lalu update
+  // total_amount yang sudah tersimpan. Dipanggil SEBELUM export supaya nilai BENAR.
+  // Strategi untuk SHOPEE:
+  //   1. Call v1 endpoint (/openapi/order/v1/batch-get) → sering lebih akurat
+  //   2. Call v3 OMS endpoint (/openapi/v3/oms/order/item/batch-get)
+  //   3. Bandingkan dengan list API value
+  //   4. Ambil nilai TERKECIL dari semua sumber (Shopee selisih selalu LEBIH BESAR)
+  // Return: map orderId → corrected totalAmount
+  async function syncFinalTotalAmount(
+    orders: any[],
+    maxRetries: number = 2,
+    retryDelayMs: number = 1200
+  ): Promise<Record<string, number>> {
+    const REQUEST_TIMEOUT_MS = 6000; // jangan biarkan 1 request nge-hang tanpa batas
+    const OVERALL_BUDGET_MS = 12000; // total waktu retry maksimal, biar app tidak stuck lama
+
+    const finalAmountByOrderId: Record<string, number> = {};
+
+    // Buat map orderId → totalAmount dari list API
+    const listApiAmountByOrderId: Record<string, number> = {};
+    (orders || []).forEach((o: any) => {
+      if (o.orderId && o.totalAmount) {
+        listApiAmountByOrderId[o.orderId] = Number(o.totalAmount) || 0;
+      }
+    });
+
+    let pendingOrderIds = Array.from(
+      new Set((orders || []).map((o: any) => o.orderId).filter(Boolean))
+    );
+    if (pendingOrderIds.length === 0) return finalAmountByOrderId;
+
+    // Tunggu Ginee sync data setelah shipping
+    await new Promise((r) => setTimeout(r, 1500));
+
+    const deadline = Date.now() + OVERALL_BUDGET_MS;
+
+    // Retry otomatis sampai semua order dapat nilai final, maxRetries habis,
+    // atau OVERALL_BUDGET_MS terlampaui (mana pun lebih dulu) — supaya export
+    // tetap jalan tanpa bikin app stuck lama kalau Ginee lambat/down.
+    for (
+      let attempt = 0;
+      attempt <= maxRetries && pendingOrderIds.length > 0 && Date.now() < deadline;
+      attempt++
+    ) {
+      try {
+        // Call KEDUA endpoint secara parallel: v3 OMS + v1 resmi
+        const [respV3, respV1] = await Promise.allSettled([
+          axios({
+            method: "POST",
+            url: "/api/apigetdetailorder",
+            timeout: REQUEST_TIMEOUT_MS,
+            data: {
+              request_uri: "/openapi/v3/oms/order/item/batch-get",
+              params: { orderId: pendingOrderIds },
+            },
+          }),
+          axios({
+            method: "POST",
+            url: "/api/apigetdetailorder_v1",
+            timeout: REQUEST_TIMEOUT_MS,
+            data: { params: { orderId: pendingOrderIds } },
+          }),
+        ]);
+
+        const v3Data = respV3.status === "fulfilled" ? (respV3.value.data?.data || []) : [];
+        const v1Data = respV1.status === "fulfilled" ? (respV1.value.data?.data || []) : [];
+        const bothFailed = respV3.status !== "fulfilled" && respV1.status !== "fulfilled";
+
+        // Buat map v1 totalAmount
+        const v1AmountByOrderId: Record<string, number> = {};
+        v1Data.forEach((o: any) => {
+          if (o.orderId && o.totalAmount) {
+            v1AmountByOrderId[o.orderId] = Number(o.totalAmount) || 0;
+          }
+        });
+
+        const updates: any[] = [];
+        const resolvedOrderIds = new Set<string>();
+        v3Data.forEach((o: any) => {
+          const p = o.paymentInfo || {};
+          let amt = 0;
+          if (o.channelId === "SHOPEE_ID") {
+            const v3Amt = Number(o.totalAmount) || 0;
+            const listApiAmt = listApiAmountByOrderId[o.orderId] || Infinity;
+            const v1Amt = v1AmountByOrderId[o.orderId] || Infinity;
+
+            // Kumpulkan semua kandidat yang valid (> 0)
+            const candidates = [v3Amt, listApiAmt, v1Amt].filter((v) => v > 0 && v < Infinity);
+
+            // Ambil nilai TERKECIL — selisih Shopee selalu LEBIH BESAR dari real
+            amt = candidates.length > 0 ? Math.min(...candidates) : v3Amt;
+
+            console.log(`🔍 SHOPEE ${o.externalOrderId}: v3=${v3Amt}, listApi=${listApiAmt === Infinity ? 'N/A' : listApiAmt}, v1=${v1Amt === Infinity ? 'N/A' : v1Amt} → final=${Math.round(amt)}`);
+          } else if (o.channelId === "TOKOPEDIA_ID") {
+            amt = parseInt(p.subTotal) - parseInt(p.subTotal) * 0.12;
+          } else if (o.channelId === "TIKTOK_ID") {
+            const base = parseInt(p.subTotal + p.voucherPlatform);
+            amt = base - base * 0.175 - base * 0.03;
+          }
+          const id_pesanan =
+            o.channelId !== "TOKOPEDIA_ID"
+              ? o.externalOrderId
+              : o.externalOrderSn?.includes("/")
+                ? o.externalOrderSn.split("/")[3]
+                : o.externalOrderSn;
+          if (id_pesanan && amt > 0) updates.push({ id_pesanan, total_amount: Math.round(amt) });
+          if (o.orderId && amt > 0) {
+            finalAmountByOrderId[o.orderId] = amt;
+            resolvedOrderIds.add(o.orderId);
+          }
+        });
+
+        if (updates.length > 0) {
+          await axios.post("http://localhost:4000/v1/update_amount_online", {
+            orders: updates,
+          });
+          console.log("✅ total_amount final di-update:", updates);
+        }
+
+        // Order yang belum dapat nilai final (gagal fetch / belum sync di Ginee) → retry lagi
+        pendingOrderIds = pendingOrderIds.filter((id) => !resolvedOrderIds.has(id));
+
+        if (pendingOrderIds.length > 0 && attempt < maxRetries && Date.now() < deadline) {
+          console.warn(`syncFinalTotalAmount: ${pendingOrderIds.length} order belum final (bothFailed=${bothFailed}), retry #${attempt + 1}`);
+          await new Promise((r) => setTimeout(r, retryDelayMs));
+        }
+      } catch (err) {
+        console.warn(`syncFinalTotalAmount gagal (attempt ${attempt + 1}):`, err);
+        if (attempt < maxRetries && Date.now() < deadline) {
+          await new Promise((r) => setTimeout(r, retryDelayMs));
+        }
+      }
+    }
+    // Order yang tetap gagal dapat nilai final setelah budget habis akan
+    // fallback ke totalAmount lama di sisi pemanggil (bukan bikin export gagal).
+    return finalAmountByOrderId;
+  }
+
   async function submitAturPengiriman(channelid: any, querysatuan: any) {
 
     let result: any = [];
@@ -1491,6 +1634,8 @@ export default function GetBaseorder() {
         idware = syncshope.id_ware;
       }
 
+      const finalTotalAmount = order.totalAmount;
+
       // Looping melalui setiap item dalam pesanan
       order.items.forEach((item: any) => {
         const skuParts = (item.sku || item.spu || "").split(".");
@@ -1501,7 +1646,7 @@ export default function GetBaseorder() {
           id_ware: skuParts[2] || idware,
           quantity: item.quantity,
           no_pesanan: order.externalOrderId,
-          total_amount: order.totalAmount,
+          total_amount: finalTotalAmount,
           nama_produk: item.productName,
           gambar_produk: item.productImageUrl,
           morethan: order.externalOrderId + "-" + order.morethan,
@@ -1523,7 +1668,7 @@ export default function GetBaseorder() {
     let rowsData: any = [];
 
     try {
-      const response = await axios.post(`https://api.gudangsandal.com/v1/cekbeforeordermassal`, {
+      const response = await axios.post(`http://localhost:4000/v1/cekbeforeordermassal`, {
         result: result,
       });
 
@@ -1562,10 +1707,10 @@ export default function GetBaseorder() {
       // 4. Filter data
       const dataQtyReady = rowsData.filter((data: any) => data.parameter === "GO");
       const dataQtyNotReady = rowsData.filter((data: any) => data.parameter === "SKIP");
-      // console.log("dataQtyReady", dataQtyReady.length);
-      // console.log("dataQtyNotReady", dataQtyNotReady.length);
-      // console.log("dataQtyReady", dataQtyReady);
-      // console.log("dataQtyNotReady", dataQtyNotReady);
+      console.log("dataQtyReady", dataQtyReady.length);
+      console.log("dataQtyNotReady", dataQtyNotReady.length);
+      console.log("dataQtyReady", dataQtyReady);
+      console.log("dataQtyNotReady", dataQtyNotReady);
 
       if (dataQtyNotReady.length > 0) {
 
@@ -1636,7 +1781,7 @@ export default function GetBaseorder() {
         }, 1000);
 
         if (dataQtyReady.length > 0) {
-          const syncResponse = await axios.post(`https://api.gudangsandal.com/v1/syncordermassal`, {
+          const syncResponse = await axios.post(`http://localhost:4000/v1/syncordermassal`, {
             data: dataQtyReady,
             tanggal: dateskrg,
             id_store: idstore,
@@ -1829,21 +1974,21 @@ export default function GetBaseorder() {
           console.log("skipHarga.length", skipHarga);
 
           if (skipOrder.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: dataQtyNotReady,
               params: "SKIP_ORDER",
             });
           }
 
           if (skipOrder2.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: skipOrder2,
               params: "SKIP_ORDER2",
             });
           }
 
           if (skipHarga.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: skipHarga,
               params: "SKIP_HARGA",
             });
@@ -1987,12 +2132,17 @@ export default function GetBaseorder() {
         console.log("dataakhir", dataakhir);
         console.log("dataGagal", dataGagal);
 
+        setmodalaturpengiriman(false);
+
+        // 1) Ambil totalAmount FINAL dari Ginee API (v1 + v3) + update tb_invoice
+        const correctedAmounts = await syncFinalTotalAmount(querysatuan);
+
+        // 2) Export Excel — pakai corrected amount dari sync, fallback ke list API
         const now = new Date();
         const datePart = now.toISOString().slice(0, 10);
         const timePart = now.toTimeString().slice(0, 8).replace(/:/g, ";");
         const filename = `DATA SUCCESS ATUR SATUAN-${datePart + ' ' + timePart}.xlsx`;
 
-        // Mengubah data menjadi Excel sheet
         const formattedData = dataakhir.flatMap((order: any, orderIndex: any) =>
           order.items.map((item: any, itemIndex: any) => ({
             No: orderIndex + 1,
@@ -2002,15 +2152,13 @@ export default function GetBaseorder() {
             Produk: item.productName,
             Size: `${item.spu}.${item.variationName}`,
             Qty: item.quantity,
-            Amount: order.totalAmount,
+            Amount: Math.round(correctedAmounts[order.orderId] || order.totalAmount),
           }))
         );
         const worksheet = XLSX.utils.json_to_sheet(formattedData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
         XLSX.writeFile(workbook, filename);
-
-        setmodalaturpengiriman(false);
         setTimeout(function () {
           getdataorder(date_start, date_end, activetab, Query, true, StoreSync, tabs, StatusCetak, filteruser, area, Brand);
         }, 1500);
@@ -2121,7 +2269,7 @@ export default function GetBaseorder() {
     let rowsData: any = [];
 
     try {
-      const response = await axios.post(`https://api.gudangsandal.com/v1/cekbeforeordermassal`, {
+      const response = await axios.post(`http://localhost:4000/v1/cekbeforeordermassal`, {
         result: result,
       });
 
@@ -2232,7 +2380,7 @@ export default function GetBaseorder() {
         }, 1000);
 
         if (dataQtyReady.length > 0) {
-          const syncResponse = await axios.post(`https://api.gudangsandal.com/v1/syncordermassal`, {
+          const syncResponse = await axios.post(`http://localhost:4000/v1/syncordermassal`, {
             data: dataQtyReady,
             tanggal: dateskrg,
             id_store: idstore,
@@ -2424,21 +2572,21 @@ export default function GetBaseorder() {
           // console.log("skipHarga.length", skipHarga);
 
           if (skipOrder.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: dataQtyNotReady,
               params: "SKIP_ORDER",
             });
           }
 
           if (skipOrder2.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: skipOrder2,
               params: "SKIP_ORDER2",
             });
           }
 
           if (skipHarga.length > 0) {
-            await axios.post("https://api.gudangsandal.com/v1/insertgagalinput", {
+            await axios.post("http://localhost:4000/v1/insertgagalinput", {
               data: skipHarga,
               params: "SKIP_HARGA",
             });
@@ -2475,7 +2623,7 @@ export default function GetBaseorder() {
     console.log("shippingInputData", shippingInputData.length);
 
     axios
-      .post("https://api.gudangsandal.com/v1/history_massal", shippingInputData)
+      .post("http://localhost:4000/v1/history_massal", shippingInputData)
       .then(function (response) {
       });
 
@@ -2587,12 +2735,17 @@ export default function GetBaseorder() {
         console.log("dataakhir", dataakhir);
         console.log("dataGagal", dataGagal);
 
+        setmodalaturpengiriman_massal(false);
+
+        // 1) Ambil totalAmount FINAL dari Ginee API (v1 + v3) + update tb_invoice
+        const correctedAmounts = await syncFinalTotalAmount(querymassal);
+
+        // 2) Export Excel — pakai corrected amount dari sync, fallback ke list API
         const now = new Date();
         const datePart = now.toISOString().slice(0, 10);
         const timePart = now.toTimeString().slice(0, 8).replace(/:/g, ";");
         const filename = `DATA SUCCESS ATUR MASSAL-${datePart + ' ' + timePart}.xlsx`;
 
-        // Mengubah data menjadi Excel sheet
         const formattedData = dataakhir.flatMap((order: any, orderIndex: any) =>
           order.items.map((item: any, itemIndex: any) => ({
             No: orderIndex + 1,
@@ -2602,15 +2755,13 @@ export default function GetBaseorder() {
             Produk: item.productName,
             Size: `${item.spu}.${item.variationName}`,
             Qty: item.quantity,
-            Amount: order.totalAmount,
+            Amount: Math.round(correctedAmounts[order.orderId] || order.totalAmount),
           }))
         );
         const worksheet = XLSX.utils.json_to_sheet(formattedData);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
         XLSX.writeFile(workbook, filename);
-
-        setmodalaturpengiriman_massal(false);
         setTimeout(function () {
           setsycnorder([]);
           getdataorder(date_start, date_end, activetab, Query, true, StoreSync, tabs, StatusCetak, filteruser, area, Brand);
@@ -2726,11 +2877,11 @@ export default function GetBaseorder() {
   }
 
   const [value, setValues]: any = useState({
-    startDate: format(subDays(startOfDay(new Date()), 4), "yyyy-MM-dd"),
+    startDate: format(subDays(startOfDay(new Date()), 7), "yyyy-MM-dd"),
     endDate: format(endOfDay(new Date()), "yyyy-MM-dd"),
   });
 
-  const startDate = format(subDays(startOfDay(new Date()), 4), "yyyy-MM-dd");
+  const startDate = format(subDays(startOfDay(new Date()), 7), "yyyy-MM-dd");
   const lastDate = format(endOfDay(new Date()), "yyyy-MM-dd");
   const [date_start, setDate_start] = useState(
     new Date(startDate + " 00:00:00").toISOString()
@@ -2944,7 +3095,7 @@ export default function GetBaseorder() {
     let datas: any = [];
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/cek_namaproduk`,
+      url: `http://localhost:4000/v1/cek_namaproduk`,
     })
       .then(function (response) {
         datas.push(response.data.result);
@@ -3098,6 +3249,151 @@ export default function GetBaseorder() {
     // Simpan file Excel
     XLSX.writeFile(workbook, "data-export.xlsx");
   };
+  // Export Excel untuk tab "Telah Diproses"
+  const handleExportProcessed = async () => {
+    if (data_order.length === 0) {
+      toast.error("Tidak ada data untuk di-export", {
+        position: toast.POSITION.TOP_RIGHT,
+        pauseOnHover: false,
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    // Ambil nama produk dari database
+    let namaProdukList: any[] = [];
+    try {
+      const resp = await axios.get("http://localhost:4000/v1/cek_namaproduk");
+      namaProdukList = resp.data.result || [];
+    } catch (err) {
+      console.warn("Gagal ambil nama produk, pakai nama dari marketplace:", err);
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Telah Diproses");
+
+    // Header
+    const headers = [
+      "No", "Channel ID", "No Pesanan", "Jasa Kirim", "No Resi",
+      "Produk", "ID Produk", "Size", "Qty", "Total Amount"
+    ];
+    worksheet.addRow(headers);
+
+    // Style header
+    worksheet.getRow(1).eachCell(cell => {
+      cell.font = { bold: true, color: { argb: "FFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "000000" },
+      };
+    });
+
+    let rowNo = 1;
+    data_order.forEach((order: any) => {
+      const channelId = order.channelId || "";
+      const noPesanan = order.channelId !== "TOKOPEDIA_ID"
+        ? order.externalOrderId
+        : order.externalOrderSn?.includes("/")
+          ? order.externalOrderSn.split("/")[3]
+          : order.externalOrderSn;
+
+      // Jasa kirim & no resi dari logisticsInfos
+      let jasaKirim = "";
+      let noResi = "";
+      if (Array.isArray(order.logisticsInfos) && order.logisticsInfos.length > 0) {
+        const providerNames = [...new Set(order.logisticsInfos.map((l: any) => l.logisticsProviderName))];
+        const trackingNumbers = [...new Set(order.logisticsInfos.map((l: any) => l.logisticsTrackingNumber).filter(Boolean))];
+        jasaKirim = providerNames.join(", ");
+        noResi = trackingNumbers.join(", ");
+      }
+
+      // Total amount
+      let totalAmt = 0;
+      if (order.channelId === "SHOPEE_ID") {
+        totalAmt = Number(order.totalAmount) || 0;
+      } else if (order.channelId === "TOKOPEDIA_ID") {
+        totalAmt = parseInt(order.paymentInfo?.subTotal) - parseInt(order.paymentInfo?.subTotal) * 0.12;
+      } else if (order.channelId === "TIKTOK_ID") {
+        const base = parseInt(order.paymentInfo?.subTotal + order.paymentInfo?.voucherPlatform);
+        totalAmt = base - base * 0.175 - base * 0.03;
+      }
+
+      if (Array.isArray(order.items)) {
+        order.items.forEach((item: any) => {
+          const sku = pickSku(item.masterSku, item.sku);
+          const idProduk = (sku || "").split(".")[0] || item.spu || "";
+          const size = (sku || "").split(".")[1] || (() => {
+            const v = item.variationName || "";
+            return v.includes(",") ? v.split(",")[1].trim() : v.trim();
+          })();
+
+          // Cari nama produk dari database
+          const matchProduk = namaProdukList.find(
+            (p: any) => String(p.id_produk).trim() === String(idProduk).trim()
+          );
+          const namaProduk = matchProduk ? matchProduk.produk : item.productName;
+
+          worksheet.addRow([
+            rowNo, channelId, noPesanan, jasaKirim, noResi,
+            namaProduk, idProduk, size, item.quantity, Math.round(totalAmt)
+          ]);
+          rowNo++;
+        });
+      }
+    });
+
+    // Highlight duplikat No Pesanan
+    const orderCounts: Record<string, number> = {};
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        const val = String(row.getCell(3).value);
+        orderCounts[val] = (orderCounts[val] || 0) + 1;
+      }
+    });
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber > 1) {
+        const val = String(row.getCell(3).value);
+        if (orderCounts[val] > 1) {
+          row.eachCell(cell => {
+            cell.fill = {
+              type: "pattern",
+              pattern: "solid",
+              fgColor: { argb: "FFFF99" },
+            };
+          });
+        }
+      }
+    });
+
+    // Auto width kolom
+    worksheet.columns.forEach(col => {
+      let maxLen = 10;
+      col.eachCell?.({ includeEmpty: true }, cell => {
+        const len = String(cell.value || "").length;
+        if (len > maxLen) maxLen = len;
+      });
+      col.width = maxLen + 2;
+    });
+
+    const now = new Date();
+    const datePart = now.toISOString().slice(0, 10);
+    const timePart = now.toTimeString().slice(0, 8).replace(/:/g, ";");
+    const filename = `Export-Telah-Diproses-${datePart + " " + timePart}.xlsx`;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(
+      new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }),
+      filename
+    );
+
+    toast.success(`${rowNo - 1} baris berhasil di-export!`, {
+      position: toast.POSITION.TOP_RIGHT,
+      pauseOnHover: false,
+      autoClose: 3000,
+    });
+  };
+
   const [openpending, setopenpending] = React.useState(false);
 
   // Di bagian atas komponen (import React, useState, dll.)
@@ -3130,7 +3426,7 @@ export default function GetBaseorder() {
 
   const DeletePendingData = async () => {
     try {
-      const response = await axios.delete("https://api.gudangsandal.com/v1/deletependingdata");
+      const response = await axios.delete("http://localhost:4000/v1/deletependingdata");
       console.log("Pending data deleted successfully:", response.data);
 
       toast.success("Pending data deleted successfully!", {
@@ -3524,6 +3820,12 @@ export default function GetBaseorder() {
 
           {tabs === "PROCESSED" ?
             (<>
+              <button
+                className="bg-green-600 font-medium text-white py-2 px-3 rounded-lg mr-2 text-sm"
+                onClick={handleExportProcessed}
+              >
+                Export Excel
+              </button>
               <div className="text-gray-600 basis-2/12 text-right  pr-3">
                 <select
                   value={StatusCetak}
@@ -3642,7 +3944,7 @@ export default function GetBaseorder() {
                               <div className="grow text-center">
                                 <div className="text-gray-800">
                                   <img
-                                    src={data_order.channelId === "SHOPEE_ID" ? 'https://api.gudangsandal.com/public/images/icon_shopee.png' : data_order.channelId === "TIKTOK_ID" ? 'https://api.gudangsandal.com/public/images/icon_tiktok.png' : data_order.channelId === "TOKOPEDIA_ID" ? 'https://api.gudangsandal.com/public/images/icon_tokopedia.png' : null}
+                                    src={data_order.channelId === "SHOPEE_ID" ? 'http://localhost:4000/public/images/icon_shopee.png' : data_order.channelId === "TIKTOK_ID" ? 'http://localhost:4000/public/images/icon_tiktok.png' : data_order.channelId === "TOKOPEDIA_ID" ? 'http://localhost:4000/public/images/icon_tokopedia.png' : null}
                                     // className="w-7 -mb-5 -mr-5"
                                     className={data_order.channelId === "SHOPEE_ID" ? 'w-7 -mb-5 -mr-5' : data_order.channelId === "TIKTOK_ID" ? 'w-7 -mb-5 -mr-5' : data_order.channelId === "TOKOPEDIA_ID" ? 'w-5 -mb-5 -mr-5' : null}
                                   />
@@ -3679,7 +3981,7 @@ export default function GetBaseorder() {
                                 <div className="text-blue-800 font-semibold">
                                   {/* {Rupiah.format(data_order.totalAmount)} */}
                                   {Rupiah.format(data_order.channelId === "SHOPEE_ID"
-                                    ? data_order.paymentInfo.totalAmount
+                                    ? data_order.totalAmount
                                     : data_order.channelId === "TOKOPEDIA_ID"
                                       ? parseInt(data_order.paymentInfo.subTotal) - (parseInt(data_order.paymentInfo.subTotal) * 0.12)
                                       : data_order.channelId === "TIKTOK_ID"
@@ -4068,9 +4370,24 @@ export default function GetBaseorder() {
                     <span>
                       Marketplace : {channelid}
                     </span>
-                    <span>
-                      Delivery Type: {logistics[0]["logisticsDeliveryType"]}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span>Delivery Type:</span>
+                      <select
+                        value={deliveryType}
+                        onChange={(e) => {
+                          setdeliveryType(e.target.value);
+                          if (e.target.value === "DROP_OFF") {
+                            setalamat_pickup("");
+                            settimepickup("");
+                            setdatatimepickup([]);
+                          }
+                        }}
+                        className="border h-[30px] px-3 font-medium text-gray-700 focus:outline-none rounded-lg text-sm"
+                      >
+                        <option value="PICK_UP">PICK_UP</option>
+                        <option value="DROP_OFF">DROP_OFF</option>
+                      </select>
+                    </div>
                     <span>
                       Kurir:{" "}
                       {
@@ -4193,7 +4510,7 @@ export default function GetBaseorder() {
                       })}
                     </select>
                   </div>
-                  {channelid === "SHOPEE_ID" && logistics[0]["logisticsDeliveryType"] !== "DROP_OFF" ? (
+                  {channelid === "SHOPEE_ID" && deliveryType !== "DROP_OFF" ? (
                     <>
                       <div className="flex flex-col gap-1">
                         <span className="">Alamat Pickup</span>
@@ -4207,7 +4524,7 @@ export default function GetBaseorder() {
                           className={`border h-[35px] w-[100%] px-5 font-medium text-gray-700 focus:outline-none rounded-lg`}
                         >
                           <option value="">Pilih Alamat</option>
-                          {addresses.map((data: any, index: number) => {
+                          {(addresses || []).map((data: any, index: number) => {
                             return (
                               <option
                                 key={index}
@@ -4234,7 +4551,7 @@ export default function GetBaseorder() {
                             ? datatimepickup[0]["pickupTimeList"].map(
                               (data: any, index: number) => {
                                 return (
-                                  <option key={index} value={data.pickupTimeId}>
+                                  <option key={index} value={data.pickupTimeId + '.' + data.timeText}>
                                     {data.timeText}
                                   </option>
                                 );
@@ -4304,8 +4621,23 @@ export default function GetBaseorder() {
                     <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
                       Total Pesanan : {totalaturmassal}
                     </div>
-                    <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
-                      Delivery Type: {logistics[0]["logisticsDeliveryType"]}
+                    <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm flex items-center justify-center gap-2">
+                      Delivery Type:
+                      <select
+                        value={deliveryType}
+                        onChange={(e) => {
+                          setdeliveryType(e.target.value);
+                          if (e.target.value === "DROP_OFF") {
+                            setalamat_pickup("");
+                            settimepickup("");
+                            setdatatimepickup([]);
+                          }
+                        }}
+                        className="border h-[30px] px-2 font-medium text-gray-700 focus:outline-none rounded-lg text-sm"
+                      >
+                        <option value="PICK_UP">PICK_UP</option>
+                        <option value="DROP_OFF">DROP_OFF</option>
+                      </select>
                     </div>
                     <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
                       Kurir:{" "}
@@ -4455,7 +4787,7 @@ export default function GetBaseorder() {
                     </select>
                   </div>
 
-                  {channelid[0] === "SHOPEE_ID" && logistics[0]["logisticsDeliveryType"] !== "DROP_OFF" ?
+                  {channelid[0] === "SHOPEE_ID" && deliveryType !== "DROP_OFF" ?
                     (
                       <>
                         <div className="flex flex-col gap-1">
@@ -4470,7 +4802,7 @@ export default function GetBaseorder() {
                             className={`border h-[35px] w-[100%] px-5 font-medium text-gray-700 focus:outline-none rounded-lg`}
                           >
                             <option value="">Pilih Alamat</option>
-                            {addresses.map((data: any, index: number) => {
+                            {(addresses || []).map((data: any, index: number) => {
                               return (
                                 <option
                                   key={index}
@@ -4568,8 +4900,23 @@ export default function GetBaseorder() {
                     <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
                       Total Pesanan : {totalaturmassal}
                     </div>
-                    <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
-                      Delivery Type: {logistics[0]["logisticsDeliveryType"]}
+                    <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm flex items-center justify-center gap-2">
+                      Delivery Type:
+                      <select
+                        value={deliveryType}
+                        onChange={(e) => {
+                          setdeliveryType(e.target.value);
+                          if (e.target.value === "DROP_OFF") {
+                            setalamat_pickup("");
+                            settimepickup("");
+                            setdatatimepickup([]);
+                          }
+                        }}
+                        className="border h-[30px] px-2 font-medium text-gray-700 focus:outline-none rounded-lg text-sm"
+                      >
+                        <option value="PICK_UP">PICK_UP</option>
+                        <option value="DROP_OFF">DROP_OFF</option>
+                      </select>
                     </div>
                     <div className="basis-1/3 rounded-lg py-3 border border-gray-300 shadow-sm">
                       Kurir:{" "}

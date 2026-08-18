@@ -8,7 +8,7 @@ function backupDatabase() {
     console.log('Memulai proses backup database...');
 
     // Gunakan nama file statis agar setiap backup menimpa file yang sama
-    const backupFileName = `backup_gudangsandal.sql`;
+    const backupFileName = `backup_eastwoodcloth.sql`;
     // Jika file ini berada di folder pages/api, folder public berada di dua level di atas (__dirname)
     const backupFilePath = path.join(__dirname, '..', '..', 'public', backupFileName);
     fs.mkdirSync(path.dirname(backupFilePath), { recursive: true });
@@ -16,7 +16,7 @@ function backupDatabase() {
     const MYSQLDUMP = process.env.MYSQLDUMP_PATH || 'mysqldump';
 
     // Perintah mysqldump dengan konfigurasi database Anda
-    const backupCommand = `${MYSQLDUMP} -h 139.180.215.133 -u 4media -p"Kintamani1@#$" gudangsandaldb_final > "${backupFilePath}"`;
+    const backupCommand = `${MYSQLDUMP} -h 45.77.175.74 -u 4yourdibi -p"3Eeeei1!tS!" u321906646_eastwoodcloth > "${backupFilePath}"`;
 
     exec(backupCommand, (error, stdout, stderr) => {
         if (error) {

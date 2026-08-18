@@ -58,7 +58,7 @@ export default function MutasiStock() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getmutation`,
+      url: `http://localhost:4000/v1/getmutation`,
       data: {
         date: date,
         user_login: user_login,
@@ -81,7 +81,7 @@ export default function MutasiStock() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getso_brand`,
+      url: `http://localhost:4000/v1/getso_brand`,
     })
       .then(function (response) {
         setdatabrand(response.data.result);
@@ -599,7 +599,7 @@ export default function MutasiStock() {
 
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/settlement_stock`,
+      url: `http://localhost:4000/v1/settlement_stock`,
       data: {
         live_stok: live_stok,
         area: area,
@@ -627,7 +627,7 @@ export default function MutasiStock() {
   }
 
   // async function settlement_stock() {
-  //     await axios.post(`https://api.gudangsandal.com/v1/settlement_stock/${live_stok}`)
+  //     await axios.post(`http://localhost:4000/v1/settlement_stock/${live_stok}`)
   //         .then(function (response) {
   //             console.log(response);
   //             // mutate();

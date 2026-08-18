@@ -51,7 +51,7 @@ export default function AddProduk() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getwarehouseselected`,
+      url: `http://localhost:4000/v1/getwarehouseselected`,
       data: {
         role: role,
         store: area,
@@ -85,7 +85,7 @@ export default function AddProduk() {
   async function getbrand() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getbrand`,
+      url: `http://localhost:4000/v1/getbrand`,
     })
       .then(function (response) {
         setdatabrand(response.data.data_brand);
@@ -108,7 +108,7 @@ export default function AddProduk() {
   async function gethistoripo() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/gethistoripo`,
+      url: `http://localhost:4000/v1/gethistoripo`,
     })
       .then(function (response) {
         setdatahistorypo(response.data.result);
@@ -133,7 +133,7 @@ export default function AddProduk() {
   async function gethistoriso() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/gethistoriso`,
+      url: `http://localhost:4000/v1/gethistoriso`,
     })
       .then(function (response) {
         setdataso(response.data.result);
@@ -159,7 +159,7 @@ export default function AddProduk() {
   async function getcategory() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getcategory`,
+      url: `http://localhost:4000/v1/getcategory`,
     })
       .then(function (response) {
         setdatacategory(response.data.data_category);
@@ -182,7 +182,7 @@ export default function AddProduk() {
   async function getsupplier() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getsupplier`,
+      url: `http://localhost:4000/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -656,7 +656,7 @@ export default function AddProduk() {
     // } else {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/addproduk`,
+      url: `http://localhost:4000/v1/addproduk`,
       headers: {
         "content-type": "multipart/form-data",
       },

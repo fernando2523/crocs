@@ -77,7 +77,7 @@ export default function PageSo() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getso`,
+      url: `http://localhost:4000/v1/getso`,
       data: {
         query: query,
         date: tanggal,
@@ -103,7 +103,7 @@ export default function PageSo() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getso_brand`,
+      url: `http://localhost:4000/v1/getso_brand`,
     })
       .then(function (response) {
         setdatabrand(response.data.result);
@@ -222,7 +222,7 @@ export default function PageSo() {
 
   async function alldeleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deletepo`, {
+      .post(`http://localhost:4000/v1/deletepo`, {
         id_po: id_po,
       })
       .then(function (response) {
@@ -254,7 +254,7 @@ export default function PageSo() {
 
   async function deleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deleteitemso`, {
+      .post(`http://localhost:4000/v1/deleteitemso`, {
         id_act: id_act,
         users: Name,
       })
@@ -302,7 +302,7 @@ export default function PageSo() {
     unregister("variasirestock");
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/get_sizepo`, {
+      .post(`http://localhost:4000/v1/get_sizepo`, {
         id_act: id_act,
       })
       .then(function (response) {
@@ -318,7 +318,7 @@ export default function PageSo() {
     }
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/editstockopname`, {
+      .post(`http://localhost:4000/v1/editstockopname`, {
         data: data,
         id_act: id_act,
         idpo: edit_idpo,

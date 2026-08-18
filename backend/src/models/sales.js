@@ -296,13 +296,14 @@ const inputSales = async (body) => {
         const [getModal] = await connection.query(
           `SELECT m_price FROM tb_purchaseorder WHERE idpo='${variation.idpo}' AND id_produk='${idproduk}'`
         );
+        const mPrice = getModal.length > 0 ? (getModal[0].m_price ?? 0) : 0;
 
         const subtotal = harga_jual * qtyToProcess;
 
         // Insert into tb_order
         await connection.query(
           `INSERT INTO tb_order (tanggal_order, id_pesanan, id_store, id_produk, source, img, produk, id_brand, id_ware, idpo, quality, size, qty, m_price, selling_price, diskon_item, subtotal, users, created_at, updated_at)
-           VALUES ('${tanggalOrder}', '${id_pesanan}', '${id_store}', '${idproduk}', 'Barang Gudang', '${img}', '${produk}', '${getProduk[0].id_brand}', '${id_ware}', '${variation.idpo}', '${getProduk[0].quality}', '${size}', '${qtyToProcess}', '${getModal[0].m_price}', '${harga_jual}', '0', '${subtotal}', '${users}', '${tanggal}', '${tanggal}')`
+           VALUES ('${tanggalOrder}', '${id_pesanan}', '${id_store}', '${idproduk}', 'Barang Gudang', '${img}', '${produk}', '${getProduk[0].id_brand}', '${id_ware}', '${variation.idpo}', '${getProduk[0].quality}', '${size}', '${qtyToProcess}', '${mPrice}', '${harga_jual}', '0', '${subtotal}', '${users}', '${tanggal}', '${tanggal}')`
         );
 
         // Generate Mutasi ID
@@ -2187,9 +2188,9 @@ const syncordermassal = async (body) => {
 
     // 7. Proses tiap order (per id_pesanan)
     for (const [id_pesanan, orderGroup] of Object.entries(groupedOrders)) {
-      // Jika order sudah ada di database, skip
+      // Jika order sudah ada di database, skip insert tapi tetap lanjutkan ke proses pengiriman
       if (existingOrders.has(id_pesanan)) {
-        skippedOrders.push({ id_pesanan, reason: "Order ID already exists in the database." });
+        processedOrders.set(id_pesanan, { totalAmount: orderGroup.totalAmount, id_store: orderGroup.items[0].id_store });
         continue;
       }
 
@@ -2832,7 +2833,7 @@ const importSalesBulk = async (body) => {
 
     } catch (err) {
       console.error(`importSalesBulk error pesanan ${id_pesanan}:`, err.message);
-      try { await connection.rollback(); } catch (_) {}
+      try { await connection.rollback(); } catch (_) { }
       connection.release();
       results.push({ id_pesanan, status: 'gagal', alasan: `Error: ${err.message}`, items: items.length });
     }
@@ -2905,8 +2906,8 @@ async function getPickingList(body) {
     );
 
     return {
-      found:     true,
-      invoice:   invoice[0],
+      found: true,
+      invoice: invoice[0],
       orderItem: items.length > 0 ? items[0] : null,
     };
   } finally {

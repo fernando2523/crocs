@@ -110,7 +110,7 @@ const Layout = (props: PropsWithChildren) => {
         const name = Cookies.get('auth') ? Cookies.get('auth_username') : '';
         setUsername(name || false);
 
-        const INACTIVITY_MS = 15 * 60 * 1000; // 15 minutes
+        const INACTIVITY_MS = 30 * 60 * 1000; // 15 minutes
         // const INACTIVITY_MS = 30 * 1000; // 30 seconds (testing)
         let timerId: ReturnType<typeof setTimeout> | null = null;
 
@@ -178,7 +178,7 @@ const Layout = (props: PropsWithChildren) => {
 
     useEffect(() => {
         if (Cookies.get("auth_store") != "AREA-185") {
-            axios.get("https://api.gudangsandal.com/v1/getnotifikasi")
+            axios.get("http://localhost:4000/v1/getnotifikasi")
                 .then((res) => {
                     setNotifications(res.data.result || []);
                 })
@@ -249,7 +249,7 @@ const Layout = (props: PropsWithChildren) => {
                                         const unreadIds = notifications
                                             .filter((n) => n.status_baca !== "READ")
                                             .map((n) => n.id_notifikasi);
-                                        axios.post("https://api.gudangsandal.com/v1/updatenotifall", {
+                                        axios.post("http://localhost:4000/v1/updatenotifall", {
                                             ids: unreadIds,
                                         }).then(() => {
                                             setNotifications((prev) =>
@@ -269,7 +269,7 @@ const Layout = (props: PropsWithChildren) => {
                                         key={index}
                                         className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${notif.status_baca === null ? 'bg-red-50 hover:bg-red-100' : ''}`}
                                         onClick={() => {
-                                            axios.post("https://api.gudangsandal.com/v1/updatenotif", {
+                                            axios.post("http://localhost:4000/v1/updatenotif", {
                                                 id_notifikasi: notif.id_notifikasi,
                                             }).then(() => {
                                                 setNotifications((prev) =>

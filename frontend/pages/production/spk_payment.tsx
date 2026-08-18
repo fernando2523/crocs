@@ -56,7 +56,7 @@ export default function SpkPayment() {
     async function loadSupplierList() {
         setIsLoading(true);
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/get_supplier_payment_list", {
+            const res = await axios.post("http://localhost:4000/v1/get_supplier_payment_list", {
                 id_ware: "all",
             });
             setDataSupplier(res.data?.result?.data || []);
@@ -77,7 +77,7 @@ export default function SpkPayment() {
         setExpandedSizeData([]);
         setDetailLoading(true);
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/get_supplier_payment_detail", {
+            const res = await axios.post("http://localhost:4000/v1/get_supplier_payment_detail", {
                 id_sup: row.id_sup,
             });
             setDetailData(res.data?.result?.data || null);
@@ -95,7 +95,7 @@ export default function SpkPayment() {
             return;
         }
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/add_spk_payment", {
+            const res = await axios.post("http://localhost:4000/v1/add_spk_payment", {
                 id_spk: null,
                 id_sup: detailSup?.id_sup,
                 jumlah_bayar: Number(newPayAmount),
@@ -123,7 +123,7 @@ export default function SpkPayment() {
     async function handleDeletePayment(id_payment: string) {
         if (!confirm("Hapus pembayaran ini?")) return;
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/delete_spk_payment", { id_payment });
+            const res = await axios.post("http://localhost:4000/v1/delete_spk_payment", { id_payment });
             if (res.data?.result?.success) {
                 toast.success("Pembayaran dihapus");
                 await openDetail(detailSup);
@@ -146,7 +146,7 @@ export default function SpkPayment() {
         }
         setSizeLoadingKey(key);
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/get_size_restock_by_spk", {
+            const res = await axios.post("http://localhost:4000/v1/get_size_restock_by_spk", {
                 id_spk: prod.id_spk,
                 id_produk: prod.id_produk,
                 id_ware: prod.id_ware,

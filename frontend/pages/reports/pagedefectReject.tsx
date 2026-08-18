@@ -113,7 +113,7 @@ export default function PageDefectReject() {
     ) {
         setisLoading(true);
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/get_spk_reject_list", {
+            const res = await axios.post("http://localhost:4000/v1/get_spk_reject_list", {
                 date: tanggal,
                 query: "all",
                 Filter_Tipe_user: fUser,
@@ -134,7 +134,7 @@ export default function PageDefectReject() {
 
     async function getUsers() {
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/getusertransfer", {
+            const res = await axios.post("http://localhost:4000/v1/getusertransfer", {
                 user_login, user_role, user_store,
             });
             setDataUsers(res.data?.result?.get_user || []);
@@ -188,7 +188,7 @@ export default function PageDefectReject() {
         const key = groupKey(item);
         setUpdatingStatusId(key);
         try {
-            await axios.post("https://api.gudangsandal.com/v1/bulk_update_spk_reject_status", {
+            await axios.post("http://localhost:4000/v1/bulk_update_spk_reject_status", {
                 ids: item.id_rejects || [],
                 status: newStatus,
             });
@@ -206,7 +206,7 @@ export default function PageDefectReject() {
         if (!allIdRejects.length) return;
         setBulkUpdating(true);
         try {
-            await axios.post("https://api.gudangsandal.com/v1/bulk_update_spk_reject_status", {
+            await axios.post("http://localhost:4000/v1/bulk_update_spk_reject_status", {
                 ids: allIdRejects,
                 status: newStatus,
             });
@@ -246,7 +246,7 @@ export default function PageDefectReject() {
         }
 
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/update_spk_reject_harga_group", {
+            const res = await axios.post("http://localhost:4000/v1/update_spk_reject_harga_group", {
                 ...editHargaGroup,
                 harga,
                 hargaChanged,   // flag: apakah harga perlu diupdate di tb_spk_reject + tb_purchaseorder
@@ -283,7 +283,7 @@ export default function PageDefectReject() {
         setExpandedKey(key);
         setExpandedSizeData([]);
         try {
-            const res = await axios.post("https://api.gudangsandal.com/v1/get_spk_reject_sizes", {
+            const res = await axios.post("http://localhost:4000/v1/get_spk_reject_sizes", {
                 id_spk_detail: item.id_spk_detail,
                 id_produk: item.id_produk,
                 tanggal_dikirim: item.tanggal_dikirim,
@@ -314,7 +314,7 @@ export default function PageDefectReject() {
         setDelLoading(true);
         try {
             // Tidak kirim rejects → backend proses semua size dari DB
-            await axios.post("https://api.gudangsandal.com/v1/delete_spk_reject_group", { ...delGroup });
+            await axios.post("http://localhost:4000/v1/delete_spk_reject_group", { ...delGroup });
             toast.success("Data berhasil dihapus, semua stok dikembalikan", { autoClose: 1500 });
             loadData();
         } catch {
@@ -422,7 +422,7 @@ export default function PageDefectReject() {
                 await Promise.all(allItems.map(async (item: any) => {
                     const key = groupKey(item);
                     try {
-                        const res = await axios.post("https://api.gudangsandal.com/v1/get_spk_reject_sizes", {
+                        const res = await axios.post("http://localhost:4000/v1/get_spk_reject_sizes", {
                             id_spk_detail: item.id_spk_detail,
                             id_produk: item.id_produk,
                             tanggal_dikirim: item.tanggal_dikirim,
@@ -721,7 +721,7 @@ export default function PageDefectReject() {
                                                             setEditHargaModal(true);
                                                             setEditHargaSizeLoading(true);
                                                             try {
-                                                                const res = await axios.post("https://api.gudangsandal.com/v1/get_spk_reject_sizes", {
+                                                                const res = await axios.post("http://localhost:4000/v1/get_spk_reject_sizes", {
                                                                     id_spk_detail: item.id_spk_detail,
                                                                     id_produk: item.id_produk,
                                                                     tanggal_dikirim: item.tanggal_dikirim,

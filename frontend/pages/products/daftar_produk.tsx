@@ -93,7 +93,7 @@ export default function DaftarProduk() {
   async function getbrand() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getbrand`,
+      url: `http://localhost:4000/v1/getbrand`,
     })
       .then(function (response) {
         setdatabrand(response.data.data_brand);
@@ -216,7 +216,7 @@ export default function DaftarProduk() {
 
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/cekarea_sync`,
+      url: `http://localhost:4000/v1/cekarea_sync`,
       data: {
         id_ware: id_ware,
       },
@@ -292,7 +292,7 @@ export default function DaftarProduk() {
     // setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getproduk`,
+      url: `http://localhost:4000/v1/getproduk`,
       data: {
         id_ware: id_ware,
         query: query,
@@ -320,7 +320,7 @@ export default function DaftarProduk() {
   async function getwarehouse(Role: any, area: any, parameter: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getwarehouse_product`,
+      url: `http://localhost:4000/v1/getwarehouse_product`,
       data: {
         area: area,
         role: Role,
@@ -452,7 +452,7 @@ export default function DaftarProduk() {
   async function getsupplier() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getsupplier`,
+      url: `http://localhost:4000/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -476,7 +476,7 @@ export default function DaftarProduk() {
   async function getProduction() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getproduction`,
+      url: `http://localhost:4000/v1/getproduction`,
     })
       .then(function (response) {
         setdataproduction(response.data.result.data_production);
@@ -490,7 +490,7 @@ export default function DaftarProduk() {
   async function gethistoripo() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/gethistoripo`,
+      url: `http://localhost:4000/v1/gethistoripo`,
     })
       .then(function (response) {
         setdatahistorypo(response.data.result);
@@ -515,7 +515,7 @@ export default function DaftarProduk() {
   async function gethistoriso() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/gethistoriso`,
+      url: `http://localhost:4000/v1/gethistoriso`,
     })
       .then(function (response) {
         setdataso(response.data.result);
@@ -541,7 +541,7 @@ export default function DaftarProduk() {
   async function getcategory() {
     await axios({
       method: "get",
-      url: `https://api.gudangsandal.com/v1/getcategory`,
+      url: `http://localhost:4000/v1/getcategory`,
     })
       .then(function (response) {
         setdatacategory(response.data.data_category);
@@ -645,7 +645,7 @@ export default function DaftarProduk() {
     setValue("edit_n_price", n_price);
     setValue("file", img);
     setShowModal(true);
-    setimg(`https://api.gudangsandal.com/public/images/${img}`);
+    setimg(`http://localhost:4000/public/images/${img}`);
   }
 
   const onSubmitUpdate = async (data: any) => {
@@ -663,7 +663,7 @@ export default function DaftarProduk() {
     formData.append("file", selectedImage);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/editproduk`,
+      url: `http://localhost:4000/v1/editproduk`,
       headers: {
         "content-type": "multipart/form-data",
       },
@@ -713,7 +713,7 @@ export default function DaftarProduk() {
 
   async function loadDefectSpkList(id_ware: string) {
     try {
-      const res = await axios.post("https://api.gudangsandal.com/v1/get_spk_list", { id_ware });
+      const res = await axios.post("http://localhost:4000/v1/get_spk_list", { id_ware });
       setDefectSpkList(res.data?.result?.data || []);
     } catch { /* ignore */ }
   }
@@ -732,7 +732,7 @@ export default function DaftarProduk() {
                 <>
                   <Image
                     className="rounded border w-[65px] h-auto p-2"
-                    src={`https://api.gudangsandal.com/public/images/${produk.img}`}
+                    src={`http://localhost:4000/public/images/${produk.img}`}
                     alt="product-1"
                     height="500"
                     width="500"
@@ -780,7 +780,7 @@ export default function DaftarProduk() {
     setValue("defect_gudangpengirim", gudang_pengirim);
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizesales`, {
+      .post(`http://localhost:4000/v1/getsizesales`, {
         idware: ware,
         idproduct: id_produk,
       })
@@ -825,7 +825,7 @@ export default function DaftarProduk() {
         return;
       }
 
-      const res = await axios.post("https://api.gudangsandal.com/v1/writeoff_reject", {
+      const res = await axios.post("http://localhost:4000/v1/writeoff_reject", {
         id_spk_detail: defectSpkDetail.trim(),
         id_sup: defectSupplier,
         id_produk: idtransferproductdefect,
@@ -891,7 +891,7 @@ export default function DaftarProduk() {
         setIsDisabled(false);
       } else {
         await axios
-          .post(`https://api.gudangsandal.com/v1/transferstokdefect`, {
+          .post(`http://localhost:4000/v1/transferstokdefect`, {
             idproduk_lama: idtransferproductdefect,
             idproduk_baru: DefectModelIDProduk,
             gudang_pengirim: waretransferproductdefect,
@@ -938,7 +938,7 @@ export default function DaftarProduk() {
     setValue("gudangpengirim", gudang_pengirim);
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizesales`, {
+      .post(`http://localhost:4000/v1/getsizesales`, {
         idware: ware,
         idproduct: id_produk,
       })
@@ -995,7 +995,7 @@ export default function DaftarProduk() {
           })),
       };
 
-      const response = await axios.post("https://api.gudangsandal.com/v1/setstoknotif_manual", payload);
+      const response = await axios.post("http://localhost:4000/v1/setstoknotif_manual", payload);
       console.log("response.data", response.data);
 
       if (response.data.result.success === true) {
@@ -1024,7 +1024,7 @@ export default function DaftarProduk() {
 
     const ipResult = await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/cekarea_sync`,
+      url: `http://localhost:4000/v1/cekarea_sync`,
       data: {
         id_ware: id_ware,
       },
@@ -1172,7 +1172,7 @@ export default function DaftarProduk() {
       setIsDisabled(false);
     } else {
       await axios
-        .post(`https://api.gudangsandal.com/v1/transferstok`, {
+        .post(`http://localhost:4000/v1/transferstok`, {
           idproduk: idtransferproduct,
           gudang_pengirim: waretransferproduct,
           gudang_tujuan: data.transferwaretujuan,
@@ -1258,7 +1258,7 @@ export default function DaftarProduk() {
     unregister("variasirestock");
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/gethargabeliso`, {
+      .post(`http://localhost:4000/v1/gethargabeliso`, {
         idware: ware,
         idproduct: id_produk,
       })
@@ -1267,7 +1267,7 @@ export default function DaftarProduk() {
       });
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizesales`, {
+      .post(`http://localhost:4000/v1/getsizesales`, {
         idware: ware,
         idproduct: id_produk,
       })
@@ -1277,7 +1277,7 @@ export default function DaftarProduk() {
       });
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/gethistorisoselected`, {
+      .post(`http://localhost:4000/v1/gethistorisoselected`, {
         idware: ware,
         idproduct: id_produk,
       })
@@ -1298,7 +1298,7 @@ export default function DaftarProduk() {
     }
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/stockopname`, {
+      .post(`http://localhost:4000/v1/stockopname`, {
         data: data,
         users: Name,
       })
@@ -1339,7 +1339,7 @@ export default function DaftarProduk() {
     setValue("harga_beli", 0);
     setValue("id_gudang_pengirim", ware);
     setValue("gudang_pengirim", gudang_pengirim);
-    setimg(`https://api.gudangsandal.com/public/images/${img}`);
+    setimg(`http://localhost:4000/public/images/${img}`);
     clearErrors();
     settipepo("");
     setValue("tipe_po", "");
@@ -1354,9 +1354,9 @@ export default function DaftarProduk() {
     unregister("variasirestock");
 
     const [sizeRes, histPoRes, spkDetailRes] = await Promise.all([
-      axios.post(`https://api.gudangsandal.com/v1/getsizesales`, { idware: ware, idproduct: id_produk }),
-      axios.post(`https://api.gudangsandal.com/v1/gethistoriposelected`, { idware: ware, idproduct: id_produk }),
-      axios.post(`https://api.gudangsandal.com/v1/get_spk_detail_list`, { idware: ware, idproduct: id_produk }),
+      axios.post(`http://localhost:4000/v1/getsizesales`, { idware: ware, idproduct: id_produk }),
+      axios.post(`http://localhost:4000/v1/gethistoriposelected`, { idware: ware, idproduct: id_produk }),
+      axios.post(`http://localhost:4000/v1/get_spk_detail_list`, { idware: ware, idproduct: id_produk }),
     ]);
 
     unregister("variasirestock");
@@ -1400,7 +1400,7 @@ export default function DaftarProduk() {
     // }
 
     try {
-      const response = await axios.post(`https://api.gudangsandal.com/v1/repeatstok`, {
+      const response = await axios.post(`http://localhost:4000/v1/repeatstok`, {
         data: data,
         users: Name,
         restockType: restockType,
@@ -1455,7 +1455,7 @@ export default function DaftarProduk() {
     setgudang(warehouse);
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/getsizesales`, {
+      .post(`http://localhost:4000/v1/getsizesales`, {
         idware: id_ware,
         idproduct: id_produk,
       })
@@ -1466,7 +1466,7 @@ export default function DaftarProduk() {
       });
 
     await axios
-      .post(`https://api.gudangsandal.com/v1/gethistoriposelected`, {
+      .post(`http://localhost:4000/v1/gethistoriposelected`, {
         idware: id_ware,
         idproduct: id_produk,
       })
@@ -1571,7 +1571,7 @@ export default function DaftarProduk() {
 
   async function deleteData() {
     await axios
-      .post(`https://api.gudangsandal.com/v1/deleteproduk`, { id, idware })
+      .post(`http://localhost:4000/v1/deleteproduk`, { id, idware })
       .then(function (response) {
         loaddataproduk(Warehouse, Query, area, Role, loadmorelimit - 20, Urutan, Brand);
       });
@@ -1618,7 +1618,7 @@ export default function DaftarProduk() {
                     <div className="aspect-square max-w-[80px] rounded  items-center">
                       <Image
                         className="w-[100%] h-full rounded"
-                        src={`https://api.gudangsandal.com/public/images/${data_produk.img}`}
+                        src={`http://localhost:4000/public/images/${data_produk.img}`}
                         alt="product-1"
                         height="500"
                         width="500"
@@ -2286,7 +2286,7 @@ export default function DaftarProduk() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getproduk`,
+      url: `http://localhost:4000/v1/getproduk`,
       data: {
         id_ware: Warehouse,
         query: Query,
@@ -2338,7 +2338,7 @@ export default function DaftarProduk() {
     } else {
       await axios({
         method: "POST",
-        url: `https://api.gudangsandal.com/v1/print_stockopname`,
+        url: `http://localhost:4000/v1/print_stockopname`,
         data: {
           id_ware: warehouse_so,
         },

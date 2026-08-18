@@ -47,7 +47,7 @@ export default function Histories() {
         setisLoading(true);
         await axios({
             method: "post",
-            url: `https://api.gudangsandal.com/v1/histories_recap`,
+            url: `http://localhost:4000/v1/histories_recap`,
             data: {
                 id_ware: warehouse,
                 query: query,
@@ -78,7 +78,7 @@ export default function Histories() {
     async function getwarehouse() {
         await axios({
             method: "get",
-            url: `https://api.gudangsandal.com/v1/getwarehouse`,
+            url: `http://localhost:4000/v1/getwarehouse`,
         })
             .then(function (response) {
                 setdataware(response.data.data_warehouse);
@@ -169,7 +169,7 @@ export default function Histories() {
         setProduk(produk);
 
         await axios
-            .post(`https://api.gudangsandal.com/v1/getHistoryDetail`, {
+            .post(`http://localhost:4000/v1/getHistoryDetail`, {
                 id_ware: id_ware,
                 id_produk: id_produk,
             })
@@ -215,7 +215,7 @@ export default function Histories() {
         setisLoading(true);
         await axios({
             method: "post",
-            url: `https://api.gudangsandal.com/v1/histories_recap`,
+            url: `http://localhost:4000/v1/histories_recap`,
             data: {
                 id_ware: Warehouse,
                 query: Query,

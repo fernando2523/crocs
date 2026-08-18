@@ -36,7 +36,7 @@ export default function Expense() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getprodukbarcode`,
+      url: `http://localhost:4000/v1/getprodukbarcode`,
       data: {
         warehouse: warehouse,
         area: area,
@@ -72,7 +72,7 @@ export default function Expense() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `https://api.gudangsandal.com/v1/getarehousebarcode`,
+      url: `http://localhost:4000/v1/getarehousebarcode`,
       data: {
         role: role,
         area: area,
@@ -245,7 +245,7 @@ export default function Expense() {
       setpilih_warehouse("close");
     } else {
       await axios
-        .post(`https://api.gudangsandal.com/v1/getsizebarcode`, {
+        .post(`http://localhost:4000/v1/getsizebarcode`, {
           idware: PrintIDWare,
           idproduct: PrintIDProduk,
           idpo: e.target.value,
@@ -347,8 +347,8 @@ export default function Expense() {
 
     // Load ID PO list dan SPK Detail list secara paralel
     const [poRes, spkDetailRes] = await Promise.all([
-      axios.post(`https://api.gudangsandal.com/v1/getidpo`, { idware: idware, idproduct: idproduk }),
-      axios.post(`https://api.gudangsandal.com/v1/get_spk_detail_list`, { idware: idware, idproduct: idproduk }),
+      axios.post(`http://localhost:4000/v1/getidpo`, { idware: idware, idproduct: idproduk }),
+      axios.post(`http://localhost:4000/v1/get_spk_detail_list`, { idware: idware, idproduct: idproduk }),
     ]);
     setdatapo(poRes.data.result);
     const detailRows: any[] = spkDetailRes.data.result || [];
@@ -367,7 +367,7 @@ export default function Expense() {
     setSelectedSizes([]);
     setaddmodal_submit(true);
     setSizeSource("spk");
-    const res = await axios.post(`https://api.gudangsandal.com/v1/get_size_by_spk_detail`, {
+    const res = await axios.post(`http://localhost:4000/v1/get_size_by_spk_detail`, {
       idware: PrintIDWare,
       idproduct: PrintIDProduk,
       id_spk_detail: detailValue,
