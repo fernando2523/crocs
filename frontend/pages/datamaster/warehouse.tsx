@@ -34,7 +34,7 @@ export default function Warehouse() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getwarehouse`,
+      url: `https://api.gudangsandal.com/v1/getwarehouse`,
     })
       .then(function (response) {
         setdatawarehouse(response.data.data_warehouse)
@@ -61,7 +61,7 @@ export default function Warehouse() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("http://localhost:4000/v1/addwarehouse", data)
+      .post("https://api.gudangsandal.com/v1/addwarehouse", data)
       .then(function (response) {
         loaddatawarehouse();
       });
@@ -79,7 +79,7 @@ export default function Warehouse() {
   async function getstore_area() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getstore_area`,
+      url: `https://api.gudangsandal.com/v1/getstore_area`,
     })
       .then(function (response) {
         setdataarea(response.data.data_area);
@@ -114,7 +114,7 @@ export default function Warehouse() {
     console.log(data);
 
     await axios
-      .post(`http://localhost:4000/v1/editwarehouse`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editwarehouse`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loaddatawarehouse();
@@ -143,7 +143,7 @@ export default function Warehouse() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deletewarehouse`, { id })
+      .post(`https://api.gudangsandal.com/v1/deletewarehouse`, { id })
       .then(function (response) {
         console.log(response.data);
         loaddatawarehouse();

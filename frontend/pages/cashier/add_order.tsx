@@ -61,7 +61,7 @@ export default function AddOrder() {
   async function getstore(role: any, idstore: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getstore_cashier_online`,
+      url: `https://api.gudangsandal.com/v1/getstore_cashier_online`,
       data: {
         role: role,
         store: idstore,
@@ -112,7 +112,7 @@ export default function AddOrder() {
   async function getwarehouse(role: any, area: any) {
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/getwarehouse_sales`,
+      url: `https://api.gudangsandal.com/v1/getwarehouse_sales`,
       data: {
         role: role,
         area: area,
@@ -166,7 +166,7 @@ export default function AddOrder() {
   async function getsupplier() {
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getsupplier`,
+      url: `https://api.gudangsandal.com/v1/getsupplier`,
     })
       .then(function (response) {
         setdatasupplier(response.data.data_supplier);
@@ -218,7 +218,7 @@ export default function AddOrder() {
     setisLoading(true);
     await axios({
       method: "post",
-      url: `http://localhost:4000/v1/products_sales`,
+      url: `https://api.gudangsandal.com/v1/products_sales`,
       data: {
         query: query,
         role: role,
@@ -261,7 +261,7 @@ export default function AddOrder() {
                       <div className="aspect-square flex items-center">
                         <Image
                           className="w-[100%] h-auto p-7 m-auto rounded-t-lg"
-                          src={`http://localhost:4000/public/images/${data_produk.img}`}
+                          src={`https://api.gudangsandal.com/public/images/${data_produk.img}`}
                           alt="Picture of the author"
                           width={300}
                           height={300}
@@ -297,7 +297,7 @@ export default function AddOrder() {
                       <div className="aspect-square flex items-center">
                         <Image
                           className="w-[100%] h-[100%] m-auto rounded-t-lg"
-                          src={`http://localhost:4000/public/images/${data_produk.img}`}
+                          src={`https://api.gudangsandal.com/public/images/${data_produk.img}`}
                           alt="Picture of the author"
                           width={300}
                           height={300}
@@ -329,7 +329,7 @@ export default function AddOrder() {
 
   async function getwaress(e: any) {
     await axios
-      .post(`http://localhost:4000/v1/cariwares`, {
+      .post(`https://api.gudangsandal.com/v1/cariwares`, {
         id_store: e,
       })
       .then(function (response) {
@@ -351,7 +351,7 @@ export default function AddOrder() {
     setModalWare(targetWare);
     setaddmodal_warehouse(targetWare);
     await axios
-      .post(`http://localhost:4000/v1/getsizesales`, {
+      .post(`https://api.gudangsandal.com/v1/getsizesales`, {
         idware: targetWare,
         idproduct: idproduk,
       })
@@ -443,7 +443,7 @@ export default function AddOrder() {
       console.log(e.target.value.length);
 
       await axios
-        .post(`http://localhost:4000/v1/cekbarcode`, {
+        .post(`https://api.gudangsandal.com/v1/cekbarcode`, {
           idware: cariwaress,
           idproduct: data[0],
           size: data[1],
@@ -452,7 +452,7 @@ export default function AddOrder() {
           setcekbarcode(response.data.result.hasil_cekbarcode);
           if (response.data.result.hasil_cekbarcode === "GO") {
             axios
-              .post(`http://localhost:4000/v1/salesproductbarcode`, {
+              .post(`https://api.gudangsandal.com/v1/salesproductbarcode`, {
                 idware: cariwaress,
                 size: data[1],
                 idproduct: data[0],
@@ -748,7 +748,7 @@ export default function AddOrder() {
                   <div className="aspect-square flex items-center">
                     <Image
                       className="w-[100%] h-[100%] m-auto rounded-lg"
-                      src={`http://localhost:4000/public/images/${rowsData[index].img}`}
+                      src={`https://api.gudangsandal.com/public/images/${rowsData[index].img}`}
                       alt="Picture of the author"
                       width={200}
                       height={200}
@@ -942,7 +942,7 @@ export default function AddOrder() {
       }));
 
       setImportLoading(true);
-      const res = await fetch(`http://localhost:4000/v1/importorderbulk`, {
+      const res = await fetch(`https://api.gudangsandal.com/v1/importorderbulk`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rows: payload, id_users: Users }),
@@ -987,7 +987,7 @@ export default function AddOrder() {
     } else {
       setTombolTambahOrder(true);
       await axios
-        .post(`http://localhost:4000/v1/inputsales`, {
+        .post(`https://api.gudangsandal.com/v1/inputsales`, {
           data: rowsData,
           id_pesanan: data.id_pesanan,
           tanggal: date,
@@ -1042,7 +1042,7 @@ export default function AddOrder() {
                     <div>
                       <Image
                         className="w-[100%] h-auto m-auto rounded-lg"
-                        src={`http://localhost:4000/public/images/${addmodal_img}`}
+                        src={`https://api.gudangsandal.com/public/images/${addmodal_img}`}
                         alt="Picture of the author"
                         width={300}
                         height={300}
@@ -1245,7 +1245,7 @@ export default function AddOrder() {
                     <div>
                       <Image
                         className="w-[100%] h-auto m-auto rounded-lg"
-                        src={`http://localhost:4000/public/images/${addmodal_img}`}
+                        src={`https://api.gudangsandal.com/public/images/${addmodal_img}`}
                         alt="Picture of the author"
                         width={300}
                         height={300}

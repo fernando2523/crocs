@@ -37,7 +37,7 @@ export default function Category() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getcategory`,
+      url: `https://api.gudangsandal.com/v1/getcategory`,
     })
       .then(function (response) {
         setdatacategory(response.data.data_category);
@@ -51,7 +51,7 @@ export default function Category() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("http://localhost:4000/v1/addcategory", data)
+      .post("https://api.gudangsandal.com/v1/addcategory", data)
       .then(function (response) {
         // console.log(response.data);
         loaddatacategory();
@@ -75,7 +75,7 @@ export default function Category() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`http://localhost:4000/v1/editcategory`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editcategory`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loaddatacategory();
@@ -98,7 +98,7 @@ export default function Category() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deletecategory`, { id })
+      .post(`https://api.gudangsandal.com/v1/deletecategory`, { id })
       .then(function (response) {
         // console.log(response.data);
         loaddatacategory();

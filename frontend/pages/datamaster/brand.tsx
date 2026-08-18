@@ -35,7 +35,7 @@ export default function Brand() {
     setisLoading(true);
     await axios({
       method: "get",
-      url: `http://localhost:4000/v1/getbrand`,
+      url: `https://api.gudangsandal.com/v1/getbrand`,
     })
       .then(function (response) {
         setdatabrand(response.data.data_brand);
@@ -49,7 +49,7 @@ export default function Brand() {
 
   const onSubmit = async (data: any) => {
     await axios
-      .post("http://localhost:4000/v1/addbrand", data)
+      .post("https://api.gudangsandal.com/v1/addbrand", data)
       .then(function (response) {
         // console.log(response.data);
         loaddatabrand();
@@ -73,7 +73,7 @@ export default function Brand() {
 
   const onSubmitUpdate = async (data: any) => {
     await axios
-      .post(`http://localhost:4000/v1/editbrand`, { data, id })
+      .post(`https://api.gudangsandal.com/v1/editbrand`, { data, id })
       .then(function (response) {
         // console.log(response.data);
         loaddatabrand();
@@ -96,7 +96,7 @@ export default function Brand() {
 
   async function deleteData() {
     await axios
-      .post(`http://localhost:4000/v1/deletebrand`, { id })
+      .post(`https://api.gudangsandal.com/v1/deletebrand`, { id })
       .then(function (response) {
         // console.log(response.data);
         loaddatabrand();

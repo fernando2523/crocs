@@ -191,7 +191,7 @@ export default function PickingList() {
     const fetchPickingData = useCallback(async (tanggal?: string) => {
         setLoadingData(true);
         try {
-            const res = await axios.post("http://localhost:4000/v1/getpickinglistdata", {
+            const res = await axios.post("https://api.gudangsandal.com/v1/getpickinglistdata", {
                 tanggal: tanggal || filterDate,
             });
             setPickingData(res.data.result || []);
@@ -223,7 +223,7 @@ export default function PickingList() {
         setIsChecking(true);
         setOrderItem(null);
         try {
-            const res = await axios.post("http://localhost:4000/v1/getpickinglist", {
+            const res = await axios.post("https://api.gudangsandal.com/v1/getpickinglist", {
                 no_pesanan: noPesanan.trim(),
                 id_produk: parsed.id_produk,
                 size: parsed.size,
@@ -251,7 +251,7 @@ export default function PickingList() {
         if (!orderItem || confirmQty < 1) return;
         setIsSaving(true);
         try {
-            await axios.post("http://localhost:4000/v1/insertpickinglist", {
+            await axios.post("https://api.gudangsandal.com/v1/insertpickinglist", {
                 no_pesanan: noPesanan.trim(),
                 id_produk: parsed!.id_produk,
                 size: parsed!.size,
@@ -280,7 +280,7 @@ export default function PickingList() {
         if (!editRow || editQty < 1 || !editSize.trim()) return;
         setIsSavingEdit(true);
         try {
-            await axios.post("http://localhost:4000/v1/updatepickinglist", {
+            await axios.post("https://api.gudangsandal.com/v1/updatepickinglist", {
                 id: editRow.id,
                 qty: editQty,
                 size: editSize.trim(),

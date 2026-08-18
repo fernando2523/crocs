@@ -75,7 +75,7 @@ export default function Expense() {
         setisLoading(true);
         await axios({
             method: "post",
-            url: `http://localhost:4000/v1/get_spk`,
+            url: `https://api.gudangsandal.com/v1/get_spk`,
             data: {
                 warehouse: warehouse,
                 area: area,
@@ -103,7 +103,7 @@ export default function Expense() {
     async function getsupplier() {
         await axios({
             method: "get",
-            url: `http://localhost:4000/v1/getsupplier`,
+            url: `https://api.gudangsandal.com/v1/getsupplier`,
         })
             .then(function (response) {
                 setdatasupplier(response.data.data_supplier);
@@ -127,7 +127,7 @@ export default function Expense() {
     async function getDateSelected() {
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/getSelectedDate"
+                "https://api.gudangsandal.com/v1/getSelectedDate"
             );
 
             const dateFromDB = res.data.result?.dateSelected;
@@ -283,7 +283,7 @@ export default function Expense() {
     async function getcategory() {
         await axios({
             method: "get",
-            url: `http://localhost:4000/v1/getcategory`,
+            url: `https://api.gudangsandal.com/v1/getcategory`,
         })
             .then(function (response) {
                 setdatacategory(response.data.data_category);
@@ -306,7 +306,7 @@ export default function Expense() {
     async function getwarehouse(role: any, area: any) {
         await axios({
             method: "post",
-            url: `http://localhost:4000/v1/getwarehouseSPK`,
+            url: `https://api.gudangsandal.com/v1/getwarehouseSPK`,
             data: {
                 role: role,
                 area: area,
@@ -465,7 +465,7 @@ export default function Expense() {
         try {
             // 2️⃣ HIT API
             const res = await axios.post(
-                "http://localhost:4000/v1/create_column_spk",
+                "https://api.gudangsandal.com/v1/create_column_spk",
                 {
                     nama: spkName,
                     warehouse: targetWarehouse,
@@ -568,7 +568,7 @@ export default function Expense() {
 
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/edit_qty_spk",
+                "https://api.gudangsandal.com/v1/edit_qty_spk",
                 payload
             );
 
@@ -656,7 +656,7 @@ export default function Expense() {
             return;
         }
 
-        await axios.post("http://localhost:4000/v1/edit_spk_name", {
+        await axios.post("https://api.gudangsandal.com/v1/edit_spk_name", {
             id_spk: editingSpkHeader.id_spk,
             nama: finalName,
         });
@@ -695,7 +695,7 @@ export default function Expense() {
         if (!isPermanent) return;
 
         try {
-            await axios.post("http://localhost:4000/v1/delete_spk", { id_spk });
+            await axios.post("https://api.gudangsandal.com/v1/delete_spk", { id_spk });
             toast.success("PO berhasil dihapus permanen");
         } catch {
             toast.error("Gagal menghapus PO");
@@ -713,7 +713,7 @@ export default function Expense() {
         if (!confirm(`Sembunyikan PO "${spkName}" dari semua halaman?\n\nData tetap tersimpan di database (bisa dipulihkan).`)) return;
 
         try {
-            await axios.post("http://localhost:4000/v1/delete_spk_temp", { id_spk });
+            await axios.post("https://api.gudangsandal.com/v1/delete_spk_temp", { id_spk });
             toast.success("PO berhasil disembunyikan");
         } catch {
             toast.error("Gagal menyembunyikan PO");
@@ -757,7 +757,7 @@ export default function Expense() {
 
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/edit_qty_spk_utama",
+                "https://api.gudangsandal.com/v1/edit_qty_spk_utama",
                 payload
             );
 
@@ -817,7 +817,7 @@ export default function Expense() {
             multiplier: Number(editMultiplierValue)
         });
         try {
-            await axios.post("http://localhost:4000/v1/x_month", {
+            await axios.post("https://api.gudangsandal.com/v1/x_month", {
                 id_spk_month: spkMultiplierId,
                 multiplier: Number(editMultiplierValue)
             });
@@ -885,7 +885,7 @@ export default function Expense() {
         setPaymentLoading(true);
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/get_spk_payment_summary",
+                "https://api.gudangsandal.com/v1/get_spk_payment_summary",
                 { id_spk }
             );
             setPaymentData(res.data?.result?.data || null);
@@ -903,7 +903,7 @@ export default function Expense() {
         }
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/add_spk_payment",
+                "https://api.gudangsandal.com/v1/add_spk_payment",
                 {
                     id_spk: paymentModalIdSpk,
                     id_sup,
@@ -930,7 +930,7 @@ export default function Expense() {
         if (!confirm("Hapus pembayaran ini?")) return;
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/delete_spk_payment",
+                "https://api.gudangsandal.com/v1/delete_spk_payment",
                 { id_payment }
             );
             if (res.data?.result?.success) {
@@ -995,7 +995,7 @@ export default function Expense() {
             Object.entries(spkIdMap).map(async ([spkName, id_spk]) => {
                 try {
                     const res = await axios.post(
-                        "http://localhost:4000/v1/get_spk_payment_summary",
+                        "https://api.gudangsandal.com/v1/get_spk_payment_summary",
                         { id_spk }
                     );
                     const data = res.data?.result?.data || null;
@@ -1404,7 +1404,7 @@ export default function Expense() {
     async function save_dateSelected(dateSelected: string) {
         try {
             const res = await axios.post(
-                "http://localhost:4000/v1/save_dateSelected",
+                "https://api.gudangsandal.com/v1/save_dateSelected",
                 {
                     dateSelected: dateSelected
                 }

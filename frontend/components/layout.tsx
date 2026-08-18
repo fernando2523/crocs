@@ -178,7 +178,7 @@ const Layout = (props: PropsWithChildren) => {
 
     useEffect(() => {
         if (Cookies.get("auth_store") != "AREA-185") {
-            axios.get("http://localhost:4000/v1/getnotifikasi")
+            axios.get("https://api.gudangsandal.com/v1/getnotifikasi")
                 .then((res) => {
                     setNotifications(res.data.result || []);
                 })
@@ -249,7 +249,7 @@ const Layout = (props: PropsWithChildren) => {
                                         const unreadIds = notifications
                                             .filter((n) => n.status_baca !== "READ")
                                             .map((n) => n.id_notifikasi);
-                                        axios.post("http://localhost:4000/v1/updatenotifall", {
+                                        axios.post("https://api.gudangsandal.com/v1/updatenotifall", {
                                             ids: unreadIds,
                                         }).then(() => {
                                             setNotifications((prev) =>
@@ -269,7 +269,7 @@ const Layout = (props: PropsWithChildren) => {
                                         key={index}
                                         className={`px-4 py-3 hover:bg-gray-50 cursor-pointer ${notif.status_baca === null ? 'bg-red-50 hover:bg-red-100' : ''}`}
                                         onClick={() => {
-                                            axios.post("http://localhost:4000/v1/updatenotif", {
+                                            axios.post("https://api.gudangsandal.com/v1/updatenotif", {
                                                 id_notifikasi: notif.id_notifikasi,
                                             }).then(() => {
                                                 setNotifications((prev) =>
